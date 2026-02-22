@@ -7,8 +7,9 @@ __pycache__/
 .github/
 openspec/
 deploy/
-scripts/
-frontend/
+**/node_modules/
+frontend/dist/
+**/__pycache__/
 GUIDE.md
 README.md
 *.md
