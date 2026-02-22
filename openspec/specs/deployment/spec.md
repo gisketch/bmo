@@ -1,14 +1,15 @@
 # Deployment Domain Spec
 
 ## Overview
-Self-hosted LiveKit infrastructure on HostHatch VPS (12GB RAM, AMD EPYC).
+Self-hosted LiveKit infrastructure on HostHatch VPS (12GB RAM, AMD EPYC). IP: `188.209.141.228`.
 
 ## Infrastructure
 
 ### LiveKit Server
 - Docker container: `livekit/livekit-server`
+- **MUST** use `--network host` (NOT port mapping — Docker iptables rules for 10k UDP ports causes hangs)
 - Modes:
-  - **Dev**: `--dev` flag, no TLS, no auth, port 7880
+  - **Dev**: `--dev --bind 0.0.0.0` flag, no TLS, placeholder auth (`devkey`/`secret`), port 7880
   - **Prod**: Docker Compose with Caddy (TLS) + Redis, ports 80/443
 
 ### Reverse Proxy
