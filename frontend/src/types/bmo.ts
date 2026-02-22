@@ -32,6 +32,25 @@ export enum EyeState {
 }
 
 /**
+ * LED indicator states for the BMO body.
+ */
+export enum LedState {
+  /** Dark blue — agent offline / disconnected */
+  Offline = 'offline',
+  /** Blue — connected (idle, listening, thinking) */
+  Connected = 'connected',
+  /** Green + volume-reactive glow — agent speaking */
+  Talking = 'talking',
+}
+
+/** LED color mapping */
+export const LED_COLORS: Record<LedState, { base: string; glow: string }> = {
+  [LedState.Offline]:   { base: '#0E3A6B', glow: 'transparent' },
+  [LedState.Connected]: { base: '#165BA9', glow: 'transparent' },
+  [LedState.Talking]:   { base: '#22C55E', glow: 'rgba(34, 197, 94, 0.4)' },
+};
+
+/**
  * High-level visual state that the BMO face can be in.
  * Each state maps to a combination of MouthState + EyeState.
  */

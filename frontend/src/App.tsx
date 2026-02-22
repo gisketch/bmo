@@ -1,16 +1,18 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
-  ControlBar,
   RoomAudioRenderer,
   useSession,
   SessionProvider,
   useAgent,
-  BarVisualizer,
+  useConnectionState,
+  useLocalParticipant,
 } from '@livekit/components-react';
-import { TokenSource } from 'livekit-client';
+import { ConnectionState, TokenSource } from 'livekit-client';
 import '@livekit/components-styles';
-import { Body, Screen } from './components/bmo';
+import { Body, FirstRow, Screen, SecondRow } from './components/bmo';
 import { useAgentVisualState } from './hooks/useAgentVisualState';
+import { useTrackVolume } from './hooks/useTrackVolume';
+import { LedState } from './types/bmo';
 
 const TOKEN_SERVER_URL =
   import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:3001/getToken';
@@ -30,44 +32,54 @@ export default function App() {
   return (
     <SessionProvider session={session}>
       <div data-lk-theme="default">
-        <Body>
-          {/* Face area — centered, takes remaining space */}
-          <div className="flex-1 flex items-center justify-center w-full">
-            <BmoFace />
-          </div>
-
-          {/* Bottom controls area */}
-          <div className="flex flex-col items-center gap-4 w-full pb-8 px-4">
-            <AgentAudioBar />
-            <ControlBar controls={{ microphone: true, camera: false, screenShare: false }} />
-          </div>
-
-          <RoomAudioRenderer />
-        </Body>
+        <BmoLayout />
       </div>
     </SessionProvider>
   );
 }
 
 /**
- * The BMO face driven by the live agent state.
+ * Main BMO layout — lifts agent visual state so both Face and FirstRow can use it.
  */
-function BmoFace() {
+function BmoLayout() {
   const { mouth, eye } = useAgentVisualState();
-  return <Screen mouthState={mouth} eyeState={eye} />;
-}
-
-/**
- * Agent audio visualizer bar — shown when the agent can listen.
- */
-function AgentAudioBar() {
   const agent = useAgent();
+  const connectionState = useConnectionState();
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
 
-  if (!agent.canListen || !agent.microphoneTrack) return null;
+  const toggleMute = useCallback(() => {
+    localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+  }, [localParticipant, isMicrophoneEnabled]);
+
+  // Determine LED state from agent/connection state
+  let ledState = LedState.Connected;
+  if (
+    connectionState === ConnectionState.Disconnected ||
+    connectionState === ConnectionState.Reconnecting
+  ) {
+    ledState = LedState.Offline;
+  } else if (agent.state === 'speaking') {
+    ledState = LedState.Talking;
+  }
+
+  // Audio-reactive glow for talking (agent output)
+  const agentVolume = useTrackVolume(
+    ledState === LedState.Talking ? agent.microphoneTrack : undefined,
+  );
+  const glowIntensity = ledState === LedState.Talking ? agentVolume : 0;
 
   return (
-    <div className="w-full max-w-xs">
-      <BarVisualizer track={agent.microphoneTrack} state={agent.state} barCount={5} />
-    </div>
+    <Body>
+      {/* Face area — top-aligned */}
+      <div className="w-full">
+        <Screen mouthState={mouth} eyeState={eye} />
+      </div>
+
+      {/* BMO body details */}
+      <FirstRow ledState={ledState} glowIntensity={glowIntensity} />
+      <SecondRow isMuted={!isMicrophoneEnabled} onToggleMute={toggleMute} />
+
+      <RoomAudioRenderer />
+    </Body>
   );
 }

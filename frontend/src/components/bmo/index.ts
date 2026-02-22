@@ -1,5 +1,11 @@
 export { default as Body } from './Body';
+export { default as CircleButton } from './CircleButton';
+export { default as DPad } from './DPad';
 export { default as Eye } from './Eye';
 export { default as Face } from './Face';
+export { default as FirstRow } from './FirstRow';
 export { default as Mouth } from './Mouth';
 export { default as Screen } from './Screen';
+export { default as SecondRow } from './SecondRow';
+export { default as StartSelect } from './StartSelect';
+export { default as TriangleButton } from './TriangleButton';

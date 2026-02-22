@@ -6,11 +6,15 @@ BMO-inspired animated character face for the voice agent frontend. Composed of d
 ## Requirements
 
 ### BMO face component system
-The frontend SHALL render a BMO-inspired animated character face composed of decoupled components: Body (full-screen background), Screen (face container with depth box), Face (eye/mouth coordinator), Eye (blinking dot), and Mouth (state-driven SVG shapes). Each component SHALL be in its own file under `src/components/bmo/`.
+The frontend SHALL render a BMO-inspired animated character face composed of decoupled components: Body (full-screen background), Screen (face container with depth box), Face (eye/mouth coordinator), Eye (blinking dot), and Mouth (state-driven SVG shapes). The Screen component SHALL use a 16:10 aspect ratio instead of a fixed height. Each component SHALL be in its own file under `src/components/bmo/`.
 
 #### Scenario: Component renders on load
 - **WHEN** the app loads
-- **THEN** the full-screen BMO background displays with the face container showing two eyes and a mouth in the default Smile state
+- **THEN** the full-screen BMO background displays with the face container at the top showing two eyes and a mouth in the default Smile state
+
+#### Scenario: Screen aspect ratio
+- **WHEN** the Screen renders
+- **THEN** the face container maintains a 16:10 aspect ratio regardless of viewport size
 
 ### Mouth state system
 The Mouth component SHALL support the following static states: Smile (0), Sad (1), OpenSmile (2), MouthOh (4), OpenSad (5). It SHALL also support animated talking states: TalkHappy (3) and TalkSad (6). Talking states SHALL cycle through 3 frames at 150ms intervals, never repeating the same frame consecutively.
@@ -74,12 +78,21 @@ The app SHALL map LiveKit agent states to BMO visual states: agent listening →
 - **THEN** the BMO face shows normal blinking eyes and Sad mouth
 
 ### Mobile-first layout
-The Body component SHALL render as a full-screen background (no mobile device frame) with the BMO teal color (#3FD4B6). The face area SHALL be centered vertically with controls at the bottom. The layout SHALL be mobile-first, filling 100vh/100vw.
+The Body component SHALL render as a full-screen background with the BMO teal color (#3FD4B6). Horizontal padding (`px-6`) and vertical gap (`gap-8`) SHALL be applied to all children uniformly. The face SHALL be positioned at the top of the viewport (no vertical centering).
 
 #### Scenario: Full-screen background
 - **WHEN** the app renders on any screen size
-- **THEN** the entire viewport is filled with the BMO teal background color, no device frame borders
+- **THEN** the entire viewport is filled with the BMO teal background color with content starting from the top
 
-#### Scenario: Controls at bottom
-- **WHEN** the app renders
-- **THEN** the microphone controls and audio visualizer are positioned at the bottom of the screen below the face
+#### Scenario: Uniform padding
+- **WHEN** the Body renders its children
+- **THEN** all children share the same horizontal padding and vertical gap
+
+### FirstRow component
+The Body SHALL render a FirstRow below the Screen containing a cassette slot (depth-box inset) and an LED status indicator side by side.
+
+### SecondRow component
+The Body SHALL render a SecondRow below the FirstRow containing two columns: left column (DPad + StartSelect, flushed left) and right column (TriangleButton + CircleButtons + mute toggle, flushed right).
+
+### BmoLayout wrapper
+A BmoLayout component SHALL wrap the Body and its children, lifting agent visual state and connection state to compute LED status and mute control. It SHALL pass `ledState`, `glowIntensity`, `isMuted`, and `onToggleMute` props to child rows.

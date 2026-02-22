@@ -11,7 +11,7 @@ interface BodyProps {
 export default function Body({ children }: BodyProps) {
   return (
     <div
-      className="flex flex-col items-center justify-between w-full min-h-dvh"
+      className="flex flex-col items-center justify-start gap-8 w-full min-h-dvh px-6"
       style={{ backgroundColor: '#3FD4B6' }}
     >
       {children}
