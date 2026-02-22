@@ -52,7 +52,8 @@ docker run -d \
     --restart unless-stopped \
     --network host \
     livekit/livekit-server \
-    --dev
+    --dev \
+    --bind 0.0.0.0
 
 echo ""
 echo "=== DONE ==="
