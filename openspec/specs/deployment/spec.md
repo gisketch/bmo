@@ -17,11 +17,22 @@ Self-hosted LiveKit infrastructure on HostHatch VPS (12GB RAM, AMD EPYC). IP: `1
 - Auto TLS via Let's Encrypt
 - Routes: main domain → LiveKit, TURN domain → TURN server
 
+### Web Service
+- Serves pre-built Vite frontend as static files (no Express server)
+- Uses `npx serve -s dist` for static file serving on port 3001
+- LiveKit token generated at build time via `scripts/generate-token.mjs` and baked into the Vite bundle
+- Build args: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`
+
 ### Agent Deployment
 - Dockerfile builds agent with `uv`
 - Downloads model files at build time
 - Runs `agent.py start` in production mode
 - Health check on port 8081
+- Uses `network_mode: host` to avoid Docker iptables issues with LiveKit UDP ports
+- Uses `restart: unless-stopped` for auto-recovery from crashes
+
+## Build-Time Token Generation
+The project SHALL include a token generation script (`scripts/generate-token.mjs`) that creates a LiveKit JWT with `roomJoin` grant for room `bmo-room`, identity `bmo-user`, and 30-day TTL. This script SHALL be invoked during the frontend Docker build to produce the `VITE_LIVEKIT_TOKEN` environment variable.
 
 ## Setup Scripts
 - `scripts/setup-dev.sh` — one-time dev server setup

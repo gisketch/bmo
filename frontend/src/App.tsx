@@ -14,13 +14,16 @@ import { useAgentVisualState } from './hooks/useAgentVisualState';
 import { useTrackVolume } from './hooks/useTrackVolume';
 import { LedState } from './types/bmo';
 
-const TOKEN_SERVER_URL =
-  import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:3001/getToken';
+const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880';
+const LIVEKIT_TOKEN = import.meta.env.VITE_LIVEKIT_TOKEN || '';
 
-const tokenSource = TokenSource.endpoint(TOKEN_SERVER_URL);
+const tokenSource = TokenSource.literal({
+  serverUrl: LIVEKIT_URL,
+  participantToken: LIVEKIT_TOKEN,
+});
 
 export default function App() {
-  const session = useSession(tokenSource, { agentName: 'voice-agent' });
+  const session = useSession(tokenSource);
 
   useEffect(() => {
     session.start();

@@ -18,6 +18,7 @@ Voice AI agent built on LiveKit Agents framework (Python). Uses a pipelined STT-
 - Agent class: `Assistant` (extends `Agent`)
 - Framework: `livekit-agents ~= 1.4`
 - Uses `AgentServer` + `@server.rtc_session` pattern
+- Persistent lifecycle: connects once at startup and stays in room indefinitely
 
 ### Tool Calls
 Tools are defined as methods on the `Assistant` class using `@function_tool()` decorator.
@@ -43,6 +44,25 @@ Tools are defined as methods on the `Assistant` class using `@function_tool()` d
 - LLM can invoke registered tools during conversation
 
 ## Requirements
+
+### Requirement: Agent lifecycle is persistent
+The agent SHALL connect to a fixed room (`bmo-room`) once at startup and remain connected indefinitely. The agent SHALL NOT terminate when human participants leave the room. The agent process SHALL self-dispatch by creating the room via the LiveKit API (with `empty_timeout=0`, `departure_timeout=0`) and dispatching itself at startup.
+
+#### Scenario: Agent starts and connects to fixed room
+- **WHEN** the agent process starts
+- **THEN** it creates room `bmo-room` (if not existing) with persistence flags and dispatches itself to that room
+
+#### Scenario: User disconnects
+- **WHEN** the human participant leaves the room
+- **THEN** the agent remains connected and its pipeline stays warm
+
+#### Scenario: User reconnects
+- **WHEN** a new human participant joins the room
+- **THEN** the agent detects the participant and generates a greeting immediately (no cold start)
+
+#### Scenario: Room or connection drops
+- **WHEN** the room is destroyed or the agent's connection drops
+- **THEN** the agent re-creates the room and re-dispatches itself automatically (via Docker restart)
 
 ### Requirement: BMO system prompt is externalized
 The agent SHALL load its system instructions for the BMO persona from a repo-tracked JSON file at startup and compose the final instruction string from that structured data.

@@ -1,16 +1,23 @@
-"""LiveKit Voice Agent — Groq STT + Gemini LLM + Fish Audio TTS."""
+"""LiveKit Voice Agent — Persistent BMO agent with Groq STT + Gemini LLM + Fish Audio TTS."""
 
+import asyncio
+import logging
 from datetime import datetime, timezone, timedelta
 import json
 from pathlib import Path
 from dotenv import load_dotenv
 
-from livekit import agents
-from livekit.agents import AgentServer, AgentSession, Agent, room_io, function_tool, RunContext
+from livekit import agents, api
+from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io, function_tool, RunContext
 from livekit.plugins import silero, groq, google, fishaudio
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 load_dotenv(".env.local")
+
+logger = logging.getLogger("bmo-agent")
+
+ROOM_NAME = "bmo-room"
+AGENT_NAME = "voice-agent"
 
 PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "bmo.json"
 
@@ -140,7 +147,14 @@ class Assistant(Agent):
 server = AgentServer()
 
 
-@server.rtc_session(agent_name="voice-agent")
+def prewarm(proc: JobProcess):
+    """Pre-load VAD model to avoid cold start."""
+    proc.userdata["vad"] = silero.VAD.load()
+
+server.setup_fnc = prewarm
+
+
+@server.rtc_session(agent_name=AGENT_NAME)
 async def entrypoint(ctx: agents.JobContext):
     session = AgentSession(
         # ── STT: Groq Whisper ──
@@ -153,25 +167,119 @@ async def entrypoint(ctx: agents.JobContext):
             model="gemini-3-flash-preview",
         ),
         # ── TTS: Fish Audio (custom voice) ──
-        # Set FISH_VOICE_REFERENCE_ID in .env.local to your custom voice ID
         tts=fishaudio.TTS(
             model="s1",
-            reference_id="323847d4c5394c678e5909c2206725f6",  # uncomment & set your Fish Audio voice ID
+            reference_id="323847d4c5394c678e5909c2206725f6",
         ),
-        # ── VAD + Turn Detection (local models, no API key) ──
-        vad=silero.VAD.load(),
+        # ── VAD (pre-loaded) + Turn Detection (needs job context) ──
+        vad=ctx.proc.userdata["vad"],
         turn_detection=MultilingualModel(),
     )
 
     await session.start(
         room=ctx.room,
         agent=Assistant(),
+        room_options=room_io.RoomOptions(
+            close_on_disconnect=False,
+            delete_room_on_close=False,
+        ),
     )
 
+    # Greet the first participant
+    participant = await ctx.wait_for_participant()
+    logger.info(f"Participant joined: {participant.identity}")
     await session.generate_reply(
         instructions="Greet the user and offer your assistance."
     )
 
+    # Stay alive indefinitely — detect disconnect, then wait for reconnect
+    while True:
+        try:
+            # Wait for the current participant to disconnect
+            disconnect_event = asyncio.Event()
+
+            def on_participant_disconnected(p):
+                if p.identity == participant.identity:
+                    disconnect_event.set()
+
+            ctx.room.on("participant_disconnected", on_participant_disconnected)
+            await disconnect_event.wait()
+            ctx.room.off("participant_disconnected", on_participant_disconnected)
+            logger.info(f"Participant disconnected: {participant.identity}")
+
+            # Wait for a new participant to join
+            participant = await ctx.wait_for_participant()
+            logger.info(f"Participant re-joined: {participant.identity}")
+            session.room_io.set_participant(participant)
+            await session.generate_reply(
+                instructions="Greet the user. They just reconnected. Welcome them back warmly."
+            )
+        except Exception as e:
+            logger.warning(f"Error in participant lifecycle: {e}")
+            await asyncio.sleep(2)
+
+
+async def ensure_room_and_dispatch():
+    """Create the persistent room and dispatch the agent to it, retrying until success."""
+    lk = api.LiveKitAPI()
+    try:
+        # Create room with infinite lifetime
+        await lk.room.create_room(
+            api.CreateRoomRequest(
+                name=ROOM_NAME,
+                empty_timeout=0,
+                departure_timeout=0,
+            )
+        )
+        logger.info(f"Room '{ROOM_NAME}' created/verified")
+
+        # Retry dispatch until the agent actually appears in the room
+        for attempt in range(20):
+            try:
+                # Check if agent is already in the room
+                resp = await lk.room.list_participants(
+                    api.ListParticipantsRequest(room=ROOM_NAME)
+                )
+                agent_present = any(
+                    p.kind == 4  # ParticipantInfo.Kind.AGENT
+                    for p in resp.participants
+                )
+                if agent_present:
+                    logger.info(f"Agent already in room '{ROOM_NAME}'")
+                    return
+
+                # Dispatch agent
+                await lk.agent_dispatch.create_dispatch(
+                    api.CreateAgentDispatchRequest(
+                        agent_name=AGENT_NAME,
+                        room=ROOM_NAME,
+                    )
+                )
+                logger.info(f"Dispatch attempt {attempt + 1}: sent")
+
+                # Wait and check if agent joined
+                await asyncio.sleep(5)
+
+            except Exception as e:
+                logger.debug(f"Dispatch attempt {attempt + 1} error: {e}")
+                await asyncio.sleep(3)
+
+        logger.warning("Agent dispatch: max attempts reached")
+    except Exception as e:
+        logger.warning(f"Room setup error: {e}")
+    finally:
+        await lk.aclose()
+
+
+def _dispatch_after_registration():
+    """Background thread: wait for agent to register, then create room + dispatch."""
+    import time
+    time.sleep(20)  # Give the agent time to register with LiveKit
+    logger.info("Attempting room creation and agent dispatch...")
+    asyncio.run(ensure_room_and_dispatch())
+
 
 if __name__ == "__main__":
+    import threading
+    threading.Thread(target=_dispatch_after_registration, daemon=True).start()
     agents.cli.run_app(server)

@@ -1,28 +1,33 @@
-# Stage 1: Build the Vite frontend
+# Stage 1: Generate token + Build the Vite frontend
 FROM node:22-slim AS build
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
-COPY . .
+COPY frontend/ .
+COPY scripts/generate-token.mjs ./generate-token.mjs
 
-# Build with relative token URL so frontend uses same origin in production
-ENV VITE_TOKEN_SERVER_URL=/getToken
-RUN npm run build
+# Generate LiveKit token at build time
+ARG LIVEKIT_API_KEY
+ARG LIVEKIT_API_SECRET
+ARG LIVEKIT_URL
 
-# Stage 2: Production — Express serves API + static files
+# Generate token and set as env vars for Vite build
+RUN export VITE_LIVEKIT_TOKEN=$(LIVEKIT_API_KEY=$LIVEKIT_API_KEY LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET node generate-token.mjs) && \
+    export VITE_LIVEKIT_URL=$LIVEKIT_URL && \
+    npm run build
+
+# Stage 2: Production — lightweight static file server
 FROM node:22-slim
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm install -g serve
 
-COPY server.js ./
 COPY --from=build /app/dist ./dist
 
 EXPOSE 3001
 
-CMD ["node", "server.js"]
+CMD ["serve", "-s", "dist", "-l", "3001"]

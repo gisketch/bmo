@@ -6,26 +6,15 @@ React + Vite SPA for voice interaction with the LiveKit agent. Uses `@livekit/co
 ## Requirements
 
 ### Voice session connection
-The frontend SHALL connect to the self-hosted LiveKit server and establish a voice session with the `voice-agent` agent using `TokenSource.endpoint()` and the `useSession` hook.
+The frontend SHALL connect to the self-hosted LiveKit server and establish a voice session using a pre-generated token via `TokenSource.literal()`. The frontend SHALL NOT dispatch an agent — the agent is already present in the fixed room.
 
 #### Scenario: Successful connection
-- **WHEN** the user opens the frontend app and clicks connect
-- **THEN** the app fetches a token from the local token server, connects to the LiveKit room, and the voice agent is dispatched to the session
+- **WHEN** the user opens the frontend app
+- **THEN** the app uses the build-time token to connect to the fixed room `bmo-room`, where the agent is already present and ready
 
 #### Scenario: Disconnect
-- **WHEN** the user clicks the disconnect button
-- **THEN** the session ends, the room connection is closed, and the agent leaves
-
-### Token endpoint
-The frontend project SHALL include an Express token server implementing the LiveKit standard endpoint specification at `POST /getToken`. It MUST return `{ server_url, participant_token }` using the LiveKit Server SDK.
-
-#### Scenario: Token generation
-- **WHEN** the frontend sends a POST request to `/getToken` with `room_config` containing agent dispatch info
-- **THEN** the server generates a JWT with `room_join` grant, includes `room_config` for agent dispatch, and returns the token with the LiveKit server URL
-
-#### Scenario: CORS support
-- **WHEN** the Vite dev server on a different port makes a cross-origin request to the token server
-- **THEN** the token server responds with appropriate CORS headers allowing the request
+- **WHEN** the user closes the browser tab or navigates away
+- **THEN** the room connection is closed but the agent remains in the room for the next visit
 
 ### Audio visualization
 _REMOVED — BarVisualizer and AgentAudioBar have been removed from the layout. Audio feedback is now provided through the LED status indicator's audio-reactive glow._
