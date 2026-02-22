@@ -11,10 +11,15 @@ interface BodyProps {
 export default function Body({ children }: BodyProps) {
   return (
     <div
-      className="flex flex-col items-center justify-start gap-8 w-full min-h-dvh px-6"
+      className="flex flex-col items-center justify-start w-full min-h-dvh min-h-svh px-6"
       style={{ backgroundColor: '#3FD4B6' }}
     >
-      {children}
+      <div
+        className="w-full flex flex-col items-center justify-start gap-8"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
