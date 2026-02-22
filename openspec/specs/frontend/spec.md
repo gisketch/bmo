@@ -28,18 +28,18 @@ The frontend project SHALL include an Express token server implementing the Live
 - **THEN** the token server responds with appropriate CORS headers allowing the request
 
 ### Audio visualization
-The frontend SHALL render an audio visualizer (BarVisualizer) showing the agent's audio output and current state (listening, thinking, speaking).
+The frontend SHALL render a BarVisualizer showing the agent's audio output, positioned at the bottom of the screen integrated into the BMO character layout. The visualizer SHALL be placed below the face area alongside microphone controls.
 
 #### Scenario: Agent speaking
 - **WHEN** the agent is speaking
-- **THEN** the BarVisualizer displays animated audio bars from the agent's microphone track
+- **THEN** the BarVisualizer displays animated audio bars from the agent's microphone track at the bottom of the BMO layout
 
 #### Scenario: Agent listening
 - **WHEN** the agent is in listening state
-- **THEN** the visualizer reflects the listening state visually
+- **THEN** the visualizer reflects the listening state visually at the bottom of the screen
 
 ### Microphone controls
-The frontend SHALL provide a control bar with a microphone toggle so the user can mute/unmute their microphone during a voice session.
+The frontend SHALL provide microphone toggle controls positioned at the bottom of the BMO layout so the user can mute/unmute their microphone during a voice session. The ControlBar SHALL be styled to fit the BMO design aesthetic.
 
 #### Scenario: Mute microphone
 - **WHEN** the user clicks the microphone button while unmuted

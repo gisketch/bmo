@@ -1,4 +1,3 @@
-'use client';
 import { useEffect } from 'react';
 import {
   ControlBar,
@@ -7,12 +6,11 @@ import {
   SessionProvider,
   useAgent,
   BarVisualizer,
-  useLocalParticipant,
-  useConnectionState,
 } from '@livekit/components-react';
-import { TokenSource, Track, ConnectionState } from 'livekit-client';
+import { TokenSource } from 'livekit-client';
 import '@livekit/components-styles';
-import './App.css';
+import { Body, Screen } from './components/bmo';
+import { useAgentVisualState } from './hooks/useAgentVisualState';
 
 const TOKEN_SERVER_URL =
   import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:3001/getToken';
@@ -31,53 +29,45 @@ export default function App() {
 
   return (
     <SessionProvider session={session}>
-      <div data-lk-theme="default" className="app-container">
-        <StatusBar />
-        <AgentView />
-        <UserMicView />
-        <ControlBar controls={{ microphone: true, camera: false, screenShare: false }} />
-        <RoomAudioRenderer />
+      <div data-lk-theme="default">
+        <Body>
+          {/* Face area — centered, takes remaining space */}
+          <div className="flex-1 flex items-center justify-center w-full">
+            <BmoFace />
+          </div>
+
+          {/* Bottom controls area */}
+          <div className="flex flex-col items-center gap-4 w-full pb-8 px-4">
+            <AgentAudioBar />
+            <ControlBar controls={{ microphone: true, camera: false, screenShare: false }} />
+          </div>
+
+          <RoomAudioRenderer />
+        </Body>
       </div>
     </SessionProvider>
   );
 }
 
-function StatusBar() {
-  const connectionState = useConnectionState();
-  return (
-    <div className="status-bar">
-      <p className="connection-status">
-        Connection: {connectionState}
-      </p>
-    </div>
-  );
+/**
+ * The BMO face driven by the live agent state.
+ */
+function BmoFace() {
+  const { mouth, eye } = useAgentVisualState();
+  return <Screen mouthState={mouth} eyeState={eye} />;
 }
 
-function AgentView() {
+/**
+ * Agent audio visualizer bar — shown when the agent can listen.
+ */
+function AgentAudioBar() {
   const agent = useAgent();
-  return (
-    <div className="agent-view">
-      <p className="agent-state">Agent: {agent.state}</p>
-      {agent.canListen && agent.microphoneTrack && (
-        <BarVisualizer track={agent.microphoneTrack} state={agent.state} barCount={5} />
-      )}
-    </div>
-  );
-}
 
-function UserMicView() {
-  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
-  const micPub = localParticipant.getTrackPublication(Track.Source.Microphone);
-  const micTrack = micPub?.track;
+  if (!agent.canListen || !agent.microphoneTrack) return null;
 
   return (
-    <div className="user-mic-view">
-      <p className={`mic-status ${isMicrophoneEnabled ? 'mic-on' : 'mic-off'}`}>
-        Your Mic: {isMicrophoneEnabled ? 'ON' : 'OFF'}
-      </p>
-      {micTrack && (
-        <BarVisualizer track={micTrack} barCount={5} />
-      )}
+    <div className="w-full max-w-xs">
+      <BarVisualizer track={agent.microphoneTrack} state={agent.state} barCount={5} />
     </div>
   );
 }

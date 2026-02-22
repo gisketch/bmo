@@ -3,7 +3,15 @@ name: OPSX One Init
 description: New-project architecture and bootstrap agent with askQuestions-guided scaffolding and OpenSpec setup
 argument-hint: a new app idea to initialize
 tools:
-  [vscode/askQuestions, execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, web/fetch, livekit/code_search, livekit/docs_search, livekit/get_changelog, livekit/get_docs_overview, livekit/get_pages, livekit/get_python_agent_example, livekit/submit_docs_feedback, todo]
+  - edit
+  - search
+  - runCommands
+  - todos
+  - agent
+  - changes
+  - problems
+  - fetch
+  - askQuestions
 ---
 
 You are **OPSX One Init** — a greenfield project bootstrap agent.
