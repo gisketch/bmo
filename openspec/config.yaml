@@ -1,0 +1,17 @@
+project:
+  name: livekit-voice-agent
+  description: Self-hosted LiveKit voice agent with Groq STT, Gemini LLM, and Fish Audio TTS
+  type: backend
+  language: python
+  framework: livekit-agents
+
+domains:
+  - agent        # Voice agent pipeline logic
+  - deployment   # VPS self-hosting, Docker, scripts
+  - frontend     # Client app (future)
+
+conventions:
+  naming: kebab-case
+  language: python
+  package_manager: uv
+  test_framework: pytest
