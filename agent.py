@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from livekit import agents, api
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io, function_tool, RunContext
-from livekit.plugins import silero, groq, google, fishaudio
+from livekit.plugins import silero, deepgram, groq, google, fishaudio
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 load_dotenv(".env.local")
@@ -156,25 +156,35 @@ server.setup_fnc = prewarm
 
 @server.rtc_session(agent_name=AGENT_NAME)
 async def entrypoint(ctx: agents.JobContext):
-    session = AgentSession(
-        # ── STT: Groq Whisper ──
-        stt=groq.STT(
-            model="whisper-large-v3-turbo",
-            language="en",
-        ),
-        # ── LLM: Google Gemini 3 Flash ──
-        llm=google.LLM(
-            model="gemini-3-flash-preview",
-        ),
-        # ── TTS: Fish Audio (custom voice) ──
-        tts=fishaudio.TTS(
-            model="s1",
-            reference_id="323847d4c5394c678e5909c2206725f6",
-        ),
-        # ── VAD (pre-loaded) + Turn Detection (needs job context) ──
-        vad=ctx.proc.userdata["vad"],
-        turn_detection=MultilingualModel(),
-    )
+
+    def _create_session(ctx):
+        """Create a fresh AgentSession with all pipeline components."""
+        return AgentSession(
+            # ── STT: Deepgram Nova ──
+            stt=deepgram.STT(
+                model="nova-3",
+                language="en",
+            ),
+            # ── STT (alt): Groq Whisper — geo-blocked in HK ──
+            # stt=groq.STT(
+            #     model="whisper-large-v3-turbo",
+            #     language="en",
+            # ),
+            # ── LLM: Google Gemini 3 Flash ──
+            llm=google.LLM(
+                model="gemini-3-flash-preview",
+            ),
+            # ── TTS: Fish Audio (custom voice) ──
+            tts=fishaudio.TTS(
+                model="s1",
+                reference_id="323847d4c5394c678e5909c2206725f6",
+            ),
+            # ── VAD (pre-loaded) + Turn Detection (needs job context) ──
+            vad=ctx.proc.userdata["vad"],
+            turn_detection=MultilingualModel(),
+        )
+
+    session = _create_session(ctx)
 
     await session.start(
         room=ctx.room,
@@ -210,7 +220,22 @@ async def entrypoint(ctx: agents.JobContext):
             # Wait for a new participant to join
             participant = await ctx.wait_for_participant()
             logger.info(f"Participant re-joined: {participant.identity}")
-            session.room_io.set_participant(participant)
+
+            # Try to reuse existing session; if it crashed, create a fresh one
+            try:
+                session.room_io.set_participant(participant)
+            except Exception:
+                logger.info("Previous session died, creating new AgentSession")
+                session = _create_session(ctx)
+                await session.start(
+                    room=ctx.room,
+                    agent=Assistant(),
+                    room_options=room_io.RoomOptions(
+                        close_on_disconnect=False,
+                        delete_room_on_close=False,
+                    ),
+                )
+
             await session.generate_reply(
                 instructions="Greet the user. They just reconnected. Welcome them back warmly."
             )
