@@ -45,7 +45,7 @@ async def entrypoint(ctx: agents.JobContext):
         # Set FISH_VOICE_REFERENCE_ID in .env.local to your custom voice ID
         tts=fishaudio.TTS(
             model="s1",
-            # reference_id="YOUR_CUSTOM_VOICE_ID",  # uncomment & set your Fish Audio voice ID
+            reference_id="323847d4c5394c678e5909c2206725f6",  # uncomment & set your Fish Audio voice ID
         ),
         # ── VAD + Turn Detection (local models, no API key) ──
         vad=silero.VAD.load(),

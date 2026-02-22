@@ -42,13 +42,15 @@ fi
 docker rm -f livekit-dev 2>/dev/null || true
 
 # ── 4. Start LiveKit Server in dev mode ──
+# NOTE: Using --network host instead of -p port mapping.
+# Docker's -p with 10,000 UDP ports creates individual iptables rules
+# which can hang for 10+ minutes. Host networking avoids this entirely
+# and is the recommended approach for LiveKit Server.
 echo ">> Starting LiveKit Server (dev mode)..."
 docker run -d \
     --name livekit-dev \
     --restart unless-stopped \
-    -p 7880:7880 \
-    -p 7881:7881 \
-    -p 50000-60000:50000-60000/udp \
+    --network host \
     livekit/livekit-server \
     --dev
 
