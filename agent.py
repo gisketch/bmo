@@ -237,7 +237,7 @@ async def entrypoint(ctx: agents.JobContext):
                 )
 
             await session.generate_reply(
-                instructions="Greet the user. They just reconnected. Welcome them back warmly."
+                instructions="Greet the user. They just reconnected. Welcome them back warmly. Mention Ghegi but use <|phoneme_start|>G EH G IY<|phoneme_end|>"
             )
         except Exception as e:
             logger.warning(f"Error in participant lifecycle: {e}")
