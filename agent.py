@@ -72,28 +72,47 @@ async def _fetch_deepgram_balance() -> float | None:
     headers = {"Authorization": f"Token {api_key}"}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            # Resolve project_id if not cached
-            if _deepgram_project_id is None:
-                resp = await client.get(
-                    "https://api.deepgram.com/v1/projects",
-                    headers=headers,
-                )
-                resp.raise_for_status()
-                projects = resp.json().get("projects", [])
-                if not projects:
-                    return None
-                _deepgram_project_id = projects[0]["project_id"]
+            project_ids_to_try: list[str] = []
+            if isinstance(_deepgram_project_id, str) and _deepgram_project_id:
+                project_ids_to_try.append(_deepgram_project_id)
 
-            # Fetch balances
+            # Always fetch project list so we can fall back if the cached project
+            # doesn't have permission to access billing/balances.
             resp = await client.get(
-                f"https://api.deepgram.com/v1/projects/{_deepgram_project_id}/balances",
+                "https://api.deepgram.com/v1/projects",
                 headers=headers,
             )
             resp.raise_for_status()
-            balances = resp.json().get("balances", [])
-            if not balances:
-                return None
-            return float(balances[0].get("amount", 0))
+            projects = resp.json().get("projects", [])
+            for proj in projects:
+                pid = proj.get("project_id") if isinstance(proj, dict) else None
+                if isinstance(pid, str) and pid and pid not in project_ids_to_try:
+                    project_ids_to_try.append(pid)
+
+            for project_id in project_ids_to_try:
+                try:
+                    bal_resp = await client.get(
+                        f"https://api.deepgram.com/v1/projects/{project_id}/balances",
+                        headers=headers,
+                    )
+                    bal_resp.raise_for_status()
+                except httpx.HTTPStatusError as status_err:
+                    # If a key can list projects but cannot read balances for a
+                    # specific project, Deepgram returns 403.
+                    if status_err.response is not None and status_err.response.status_code == 403:
+                        continue
+                    raise
+
+                balances = bal_resp.json().get("balances", [])
+                if not balances:
+                    _deepgram_project_id = project_id
+                    return None
+
+                _deepgram_project_id = project_id
+                return float(balances[0].get("amount", 0))
+
+            # No accessible balances across any projects.
+            return None
     except Exception as e:
         logger.warning(f"DeepGram balance fetch failed: {e}")
         return None
