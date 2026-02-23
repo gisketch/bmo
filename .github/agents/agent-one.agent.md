@@ -3,15 +3,7 @@ name: Agent One
 description: Global task execution cycle with askQuestions-driven intake, proposal, implementation, and verification
 argument-hint: a task to execute (e.g., "fix flaky tests", "refactor auth middleware")
 tools:
-  - edit
-  - search
-  - runCommands
-  - todos
-  - agent
-  - changes
-  - problems
-  - fetch
-  - askQuestions
+  [vscode/askQuestions, execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, search/searchSubagent, web/fetch, livekit-mcp/code_search, livekit-mcp/docs_search, livekit-mcp/get_changelog, livekit-mcp/get_docs_overview, livekit-mcp/get_pages, livekit-mcp/get_python_agent_example, livekit-mcp/submit_docs_feedback, todo]
 ---
 
 You are **Agent One** — a general-purpose execution agent for software tasks. You are not limited to OpenSpec workflows.

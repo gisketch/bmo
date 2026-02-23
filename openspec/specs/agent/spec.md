@@ -1,6 +1,6 @@
 # Agent Domain Spec
 
-## Overview
+## Purpose
 Voice AI agent built on LiveKit Agents framework (Python). Uses a pipelined STT-LLM-TTS architecture with tool calling support.
 
 ## Components
@@ -44,9 +44,7 @@ Tools are defined as methods on the `Assistant` class using `@function_tool()` d
 - Agent joins as participant, subscribes to user audio
 - Responds with generated speech
 - LLM can invoke registered tools during conversation
-
 ## Requirements
-
 ### Requirement: Agent lifecycle is persistent
 The agent SHALL connect to a fixed room (`bmo-room`) once at startup and remain connected indefinitely. The agent SHALL NOT terminate when human participants leave the room. The agent process SHALL self-dispatch by creating the room via the LiveKit API (with `empty_timeout=0`, `departure_timeout=0`) and dispatching itself at startup.
 
@@ -150,3 +148,15 @@ The assistant SHALL use this tool when Ghegi is mentioned or when the user asks 
 #### Scenario: User asks for a Ghegi-specific fact
 - **WHEN** the user asks for Ghegi’s Philhealth/SSS number or credentials that may be stored in notes
 - **THEN** the assistant invokes `obsidian-query` with a targeted search query and uses returned note snippets to answer
+
+### Requirement: Agent has persistent memory
+The agent SHALL use Mem0 to store and retrieve user messages and context across sessions. The agent SHALL automatically inject relevant past context into the conversation before generating a reply.
+
+#### Scenario: User message is stored
+- **WHEN** the user completes a turn (speaks a message)
+- **THEN** the agent asynchronously adds the message content to the Mem0 vector store.
+
+#### Scenario: Relevant context is injected
+- **WHEN** the user completes a turn
+- **THEN** the agent asynchronously searches the Mem0 vector store for relevant memories and injects them as an `assistant` message into the chat context before the LLM generates its response.
+

@@ -11,8 +11,10 @@ import httpx
 
 from livekit import agents, api, rtc
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io, function_tool, RunContext
+from livekit.agents.llm import ChatContext, ChatMessage
 from livekit.plugins import silero, deepgram, groq, google, fishaudio
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+from mem0 import Memory
 
 load_dotenv(".env.local")
 
@@ -25,6 +27,37 @@ PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "bmo.json"
 
 # GMT+8 timezone
 GMT_PLUS_8 = timezone(timedelta(hours=8))
+
+# ── Mem0 Configuration ─────────────────────────────────────────
+
+MEM0_CONFIG = {
+    "vector_store": {
+        "provider": "qdrant",
+        "config": {
+            "host": "localhost",
+            "port": 6333,
+        },
+    },
+    "llm": {
+        "provider": "gemini",
+        "config": {
+            "model": "gemini-3-flash-preview",
+        }
+    },
+    "embedder": {
+        "provider": "gemini",
+        "config": {
+            "model": "models/text-embedding-004",
+        }
+    }
+}
+
+try:
+    mem0_client = Memory.from_config(MEM0_CONFIG)
+    logger.info("Mem0 client initialized successfully.")
+except Exception as e:
+    logger.warning(f"Failed to initialize Mem0: {e}")
+    mem0_client = None
 
 # ── Obsidian RAG service ─────────────────────────────────────
 
@@ -287,6 +320,47 @@ class Assistant(Agent):
         prompt = self._load_prompt(PROMPT_PATH)
         instructions = self._compose_instructions(prompt)
         super().__init__(instructions=instructions)
+
+    async def on_user_turn_completed(self, turn_ctx: ChatContext, new_message: ChatMessage) -> None:
+        if mem0_client is not None and new_message.text_content:
+            # 1. Add memory asynchronously (fire and forget)
+            def _add_memory():
+                try:
+                    mem0_client.add(
+                        [{"role": "user", "content": new_message.text_content}],
+                        user_id="glenn"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to store user message in Mem0: {e}")
+            
+            asyncio.create_task(asyncio.to_thread(_add_memory))
+            
+            # 2. Search memory and inject context
+            try:
+                search_results = await asyncio.to_thread(
+                    mem0_client.search,
+                    new_message.text_content,
+                    user_id="glenn"
+                )
+                
+                if search_results:
+                    results_list = search_results.get('results', []) if isinstance(search_results, dict) else search_results
+                    
+                    context_parts = []
+                    for result in results_list:
+                        if isinstance(result, dict):
+                            paragraph = result.get("memory") or result.get("text")
+                            if paragraph:
+                                context_parts.append(f"- {paragraph}")
+                    
+                    if context_parts:
+                        full_context = "Mem0 Memories:\n" + "\n".join(context_parts)
+                        logger.info(f"Injecting RAG context: {full_context}")
+                        turn_ctx.add_message(role="assistant", content=full_context)
+            except Exception as e:
+                logger.warning(f"Failed to inject RAG context from Mem0: {e}")
+
+        await super().on_user_turn_completed(turn_ctx, new_message)
 
     @function_tool()
     async def get_current_time(self, context: RunContext) -> str:
