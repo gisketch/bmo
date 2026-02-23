@@ -437,10 +437,9 @@ async def entrypoint(ctx: agents.JobContext):
 
 
 async def ensure_room_and_dispatch():
-    """Create the persistent room and dispatch the agent to it, retrying until success."""
+    """Create the persistent room and dispatch the agent if none is present."""
     lk = api.LiveKitAPI()
     try:
-        # Create room with infinite lifetime
         await lk.room.create_room(
             api.CreateRoomRequest(
                 name=ROOM_NAME,
@@ -448,55 +447,47 @@ async def ensure_room_and_dispatch():
                 departure_timeout=0,
             )
         )
-        logger.info(f"Room '{ROOM_NAME}' created/verified")
 
-        # Retry dispatch until the agent actually appears in the room
-        for attempt in range(20):
-            try:
-                # Check if agent is already in the room
-                resp = await lk.room.list_participants(
-                    api.ListParticipantsRequest(room=ROOM_NAME)
-                )
-                agent_present = any(
-                    p.kind == 4  # ParticipantInfo.Kind.AGENT
-                    for p in resp.participants
-                )
-                if agent_present:
-                    logger.info(f"Agent already in room '{ROOM_NAME}'")
-                    return
+        resp = await lk.room.list_participants(
+            api.ListParticipantsRequest(room=ROOM_NAME)
+        )
+        agent_present = any(
+            p.kind == 4  # ParticipantInfo.Kind.AGENT
+            for p in resp.participants
+        )
+        if agent_present:
+            return
 
-                # Dispatch agent
-                await lk.agent_dispatch.create_dispatch(
-                    api.CreateAgentDispatchRequest(
-                        agent_name=AGENT_NAME,
-                        room=ROOM_NAME,
-                    )
-                )
-                logger.info(f"Dispatch attempt {attempt + 1}: sent")
-
-                # Wait and check if agent joined
-                await asyncio.sleep(5)
-
-            except Exception as e:
-                logger.debug(f"Dispatch attempt {attempt + 1} error: {e}")
-                await asyncio.sleep(3)
-
-        logger.warning("Agent dispatch: max attempts reached")
+        logger.info("No agent in room — dispatching...")
+        await lk.agent_dispatch.create_dispatch(
+            api.CreateAgentDispatchRequest(
+                agent_name=AGENT_NAME,
+                room=ROOM_NAME,
+            )
+        )
     except Exception as e:
-        logger.warning(f"Room setup error: {e}")
+        logger.warning(f"ensure_room_and_dispatch error: {e}")
     finally:
         await lk.aclose()
 
 
-def _dispatch_after_registration():
-    """Background thread: wait for agent to register, then create room + dispatch."""
+WATCHDOG_INTERVAL = 30
+
+
+def _agent_watchdog():
+    """Background thread: periodically ensure an agent is always in the room."""
     import time
-    time.sleep(20)  # Give the agent time to register with LiveKit
-    logger.info("Attempting room creation and agent dispatch...")
-    asyncio.run(ensure_room_and_dispatch())
+    time.sleep(20)
+    logger.info("Agent watchdog started")
+    while True:
+        try:
+            asyncio.run(ensure_room_and_dispatch())
+        except Exception as e:
+            logger.warning(f"Watchdog error: {e}")
+        time.sleep(WATCHDOG_INTERVAL)
 
 
 if __name__ == "__main__":
     import threading
-    threading.Thread(target=_dispatch_after_registration, daemon=True).start()
+    threading.Thread(target=_agent_watchdog, daemon=True).start()
     agents.cli.run_app(server)
