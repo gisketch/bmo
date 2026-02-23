@@ -14,12 +14,16 @@
 export default function CRTEffect({
   flicker = true,
   reflection = true,
+  className,
+  roundedClassName = 'rounded-[2.5rem]',
 }: {
   flicker?: boolean;
   reflection?: boolean;
+  className?: string;
+  roundedClassName?: string;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-[2.5rem]">
+    <div className={`pointer-events-none absolute inset-0 z-50 overflow-hidden ${roundedClassName} ${className ?? ''}`}>
       {/* Scanlines - Subtler and more reliable repeating gradient */}
       <div 
         className="absolute inset-0 opacity-20 mix-blend-overlay"
@@ -42,7 +46,7 @@ export default function CRTEffect({
       )}
 
       {/* Curvature/Warp - Simulated with a subtle inner shadow and a slight bulge effect on the edges */}
-      <div className="absolute inset-0 shadow-[inset_0_0_10px_rgba(0,0,0,0.2)] rounded-[2.5rem]"></div>
+      <div className={`absolute inset-0 shadow-[inset_0_0_10px_rgba(0,0,0,0.2)] ${roundedClassName}`}></div>
       
       {/* CRT Glass Reflection - Adds to the curved feel */}
       {reflection && (

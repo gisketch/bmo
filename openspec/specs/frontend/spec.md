@@ -213,3 +213,11 @@ The frontend SHALL allow the user to force disconnect from the LiveKit room by t
 - **WHEN** both session and room are fully connected and the user taps the small circle button 5 times within 2 seconds
 - **THEN** the app calls `session.end()` to disconnect from the room
 
+### Requirement: Cassette content modal (placeholder)
+When a cassette is visible in the cassette slot, pressing it SHALL open a modal overlay. The modal SHALL render the cassette message `content` text. The modal SHALL be dismissible via backdrop click or `Escape`.
+
+#### Scenario: Dismiss modal
+- **GIVEN** the cassette modal is open
+- **WHEN** the user clicks the backdrop or presses `Escape`
+- **THEN** the modal closes
+

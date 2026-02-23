@@ -85,3 +85,8 @@ export interface StatusData {
   /** LLM requests processed today */
   llm_requests_today: number;
 }
+
+export interface CassetteMessage {
+  title: string;
+  content: string;
+}

@@ -6,6 +6,9 @@ interface FirstRowProps {
   ledState?: LedState;
   /** Normalized volume 0–1 for glow intensity (talking/listening states) */
   glowIntensity?: number;
+  cassetteTitle?: string;
+  cassetteAnimation?: 'insert' | 'eject';
+  onCassettePress?: () => void;
 }
 
 /**
@@ -15,6 +18,9 @@ export default function FirstRow({
   className,
   ledState = LedState.Offline,
   glowIntensity = 0,
+  cassetteTitle,
+  cassetteAnimation,
+  onCassettePress,
 }: FirstRowProps) {
   const colors = LED_COLORS[ledState];
   const hasGlow = ledState === LedState.Talking;
@@ -31,7 +37,13 @@ export default function FirstRow({
           className="absolute inset-x-0 bottom-0 rounded-lg z-10"
           style={{ top: '50%', backgroundColor: '#0D4538' }}
         />
-        <Cassette />
+        {cassetteTitle ? (
+          <Cassette
+            title={cassetteTitle}
+            onPress={onCassettePress}
+            animate={cassetteAnimation}
+          />
+        ) : null}
       </div>
 
       {/* LED Indicator — color and glow driven by agent state */}
