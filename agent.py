@@ -36,6 +36,7 @@ MEM0_CONFIG = {
         "config": {
             "host": "localhost",
             "port": 6333,
+            "embedding_model_dims": 768,
         },
     },
     "llm": {
