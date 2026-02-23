@@ -6,19 +6,20 @@ import TriangleButton from './TriangleButton';
 interface SecondRowProps {
   isMuted: boolean;
   onToggleMute: () => void;
+  onStartPress?: () => void;
 }
 
 /**
  * SecondRow — Two-column row below the FirstRow.
  * Left column: DPad + StartSelect. Right column: Action buttons.
  */
-export default function SecondRow({ isMuted, onToggleMute }: SecondRowProps) {
+export default function SecondRow({ isMuted, onToggleMute, onStartPress }: SecondRowProps) {
   return (
     <div className="flex flex-row w-full justify-between px-2">
       {/* First Column — DPad + Start/Select, flushed left */}
       <div className="flex flex-col items-start justify-center gap-16">
         <DPad />
-        <StartSelect />
+        <StartSelect onStartPress={onStartPress} />
       </div>
 
       {/* Second Column — Action buttons, flushed right */}

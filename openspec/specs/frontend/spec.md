@@ -38,7 +38,15 @@ The frontend SHALL render a cross-shaped directional pad (DPad) with four arms i
 - **THEN** the main pad layer translates down 5px and the shadow fades out
 
 ### StartSelect buttons
-The frontend SHALL render two thin horizontal blue (`#1156A3`) buttons side by side with 3D extrusion and shadow, using the same press animation pattern as DPad.
+The frontend SHALL render two thin horizontal blue (`#1156A3`) buttons side by side with 3D extrusion and shadow, using the same press animation pattern as DPad. The StartSelect component SHALL accept optional `onStartPress` and `onSelectPress` callback props that fire when the respective button's press animation completes (on mouse/touch up).
+
+#### Scenario: Start button pressed
+- **WHEN** the user clicks/touches the Start button (left button)
+- **THEN** the button animates with the 3D press effect and the `onStartPress` callback fires on release
+
+#### Scenario: Select button pressed
+- **WHEN** the user clicks/touches the Select button (right button)
+- **THEN** the button animates with the 3D press effect and the `onSelectPress` callback fires on release
 
 ### TriangleButton component
 The frontend SHALL render a triangular SVG button in blue (`#3E9BF9`) with rounded corners, 3D extrusion (auto-darkened 30%), and press animation.
@@ -69,3 +77,14 @@ The frontend SHALL use `RoomAudioRenderer` to play the agent's audio output thro
 #### Scenario: Agent audio playback
 - **WHEN** the agent publishes an audio track in the room
 - **THEN** the user hears the agent's speech through their browser audio output
+
+### Screen conditional rendering
+The Screen component SHALL accept an `activePage` prop (`'face' | 'status'`) and conditionally render either the Face component or the StatusPage component. When `activePage` is `'face'`, the Face with its eye and mouth state props SHALL render. When `activePage` is `'status'`, the StatusPage with status data props SHALL render.
+
+#### Scenario: Face page active
+- **WHEN** `activePage` is `'face'`
+- **THEN** the Screen renders the Face component with eye blinking and mouth animations
+
+#### Scenario: Status page active
+- **WHEN** `activePage` is `'status'`
+- **THEN** the Screen renders the StatusPage component with service health metrics

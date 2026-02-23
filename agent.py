@@ -2,12 +2,14 @@
 
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 import json
 from pathlib import Path
 from dotenv import load_dotenv
+import httpx
 
-from livekit import agents, api
+from livekit import agents, api, rtc
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io, function_tool, RunContext
 from livekit.plugins import silero, deepgram, groq, google, fishaudio
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
@@ -23,6 +25,91 @@ PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "bmo.json"
 
 # GMT+8 timezone
 GMT_PLUS_8 = timezone(timedelta(hours=8))
+
+
+# ── Status tracking ────────────────────────────────────────────
+
+_llm_request_count: int = 0
+_llm_request_date: str = ""  # YYYY-MM-DD in GMT+8
+_deepgram_project_id: str | None = None
+
+
+def _increment_llm_counter() -> None:
+    """Increment LLM request counter, resetting if the day changed."""
+    global _llm_request_count, _llm_request_date
+    today = datetime.now(GMT_PLUS_8).strftime("%Y-%m-%d")
+    if today != _llm_request_date:
+        _llm_request_count = 0
+        _llm_request_date = today
+    _llm_request_count += 1
+
+
+async def _fetch_fish_audio_balance() -> float | None:
+    """Fetch Fish Audio remaining credit balance."""
+    api_key = os.environ.get("FISH_API_KEY", "")
+    if not api_key:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://api.fish.audio/wallet/self/api-credit",
+                headers={"Authorization": f"Bearer {api_key}"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return float(data.get("credit", 0))
+    except Exception as e:
+        logger.warning(f"Fish Audio balance fetch failed: {e}")
+        return None
+
+
+async def _fetch_deepgram_balance() -> float | None:
+    """Fetch DeepGram remaining balance (caches project_id after first lookup)."""
+    global _deepgram_project_id
+    api_key = os.environ.get("DEEPGRAM_API_KEY", "")
+    if not api_key:
+        return None
+    headers = {"Authorization": f"Token {api_key}"}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Resolve project_id if not cached
+            if _deepgram_project_id is None:
+                resp = await client.get(
+                    "https://api.deepgram.com/v1/projects",
+                    headers=headers,
+                )
+                resp.raise_for_status()
+                projects = resp.json().get("projects", [])
+                if not projects:
+                    return None
+                _deepgram_project_id = projects[0]["project_id"]
+
+            # Fetch balances
+            resp = await client.get(
+                f"https://api.deepgram.com/v1/projects/{_deepgram_project_id}/balances",
+                headers=headers,
+            )
+            resp.raise_for_status()
+            balances = resp.json().get("balances", [])
+            if not balances:
+                return None
+            return float(balances[0].get("amount", 0))
+    except Exception as e:
+        logger.warning(f"DeepGram balance fetch failed: {e}")
+        return None
+
+
+async def _build_status_response() -> str:
+    """Build JSON status response with TTS/STT balances and LLM request count."""
+    tts_balance, stt_balance = await asyncio.gather(
+        _fetch_fish_audio_balance(),
+        _fetch_deepgram_balance(),
+    )
+    return json.dumps({
+        "tts_balance": tts_balance,
+        "stt_balance": stt_balance,
+        "llm_requests_today": _llm_request_count,
+    })
 
 
 class Assistant(Agent):
@@ -184,7 +271,20 @@ async def entrypoint(ctx: agents.JobContext):
             turn_detection=MultilingualModel(),
         )
 
+    # ── Register RPC methods ──
+    @ctx.room.local_participant.register_rpc_method("getStatus")
+    async def handle_get_status(data: rtc.RpcInvocationData) -> str:
+        """Return current service status as JSON."""
+        return await _build_status_response()
+
     session = _create_session(ctx)
+
+    # Track LLM usage via session events
+    @session.on("agent_state_changed")
+    def _on_agent_state_changed(*args, **kwargs):
+        # Increment when agent transitions to speaking (implies LLM completed)
+        if args and hasattr(args[0], 'new_state') and args[0].new_state == 'speaking':
+            _increment_llm_counter()
 
     await session.start(
         room=ctx.room,

@@ -1,15 +1,28 @@
 import Face from './Face';
+import StatusPage from './StatusPage';
 import { EyeState, MouthState } from '../../types/bmo';
+import type { BmoPage, StatusData } from '../../types/bmo';
 
 interface ScreenProps {
   mouthState: MouthState;
   eyeState: EyeState;
+  activePage: BmoPage;
+  statusData: StatusData | null;
+  statusLoading: boolean;
+  agentConnected: boolean;
 }
 
 /**
- * Screen — The inset depth-box container that holds the Face.
+ * Screen — The inset depth-box container that holds the Face or StatusPage.
  */
-export default function Screen({ mouthState, eyeState }: ScreenProps) {
+export default function Screen({
+  mouthState,
+  eyeState,
+  activePage,
+  statusData,
+  statusLoading,
+  agentConnected,
+}: ScreenProps) {
   return (
     <div id="screen" className="flex flex-col w-full pt-12 gap-4">
       <div
@@ -20,7 +33,15 @@ export default function Screen({ mouthState, eyeState }: ScreenProps) {
           className="absolute inset-x-0 bottom-0 rounded-[2.5rem] overflow-hidden"
           style={{ top: '6px', backgroundColor: '#A9FCE4' }}
         >
-          <Face mouthState={mouthState} eyeState={eyeState} />
+          {activePage === 'face' ? (
+            <Face mouthState={mouthState} eyeState={eyeState} />
+          ) : (
+            <StatusPage
+              statusData={statusData}
+              agentConnected={agentConnected}
+              loading={statusLoading}
+            />
+          )}
         </div>
       </div>
     </div>

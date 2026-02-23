@@ -8,4 +8,5 @@ export { default as Mouth } from './Mouth';
 export { default as Screen } from './Screen';
 export { default as SecondRow } from './SecondRow';
 export { default as StartSelect } from './StartSelect';
+export { default as StatusPage } from './StatusPage';
 export { default as TriangleButton } from './TriangleButton';

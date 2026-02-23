@@ -68,3 +68,20 @@ export const AGENT_VISUAL_STATES = {
   thinking: { mouth: MouthState.MouthOh, eye: EyeState.Normal } as AgentVisualState,
   offline: { mouth: MouthState.Sad, eye: EyeState.Normal } as AgentVisualState,
 } as const;
+
+/**
+ * BMO screen page modes.
+ */
+export type BmoPage = 'face' | 'status';
+
+/**
+ * Status data returned by the agent's getStatus RPC.
+ */
+export interface StatusData {
+  /** Fish Audio TTS credit balance in dollars, or null if unavailable */
+  tts_balance: number | null;
+  /** DeepGram STT balance in dollars, or null if unavailable */
+  stt_balance: number | null;
+  /** LLM requests processed today */
+  llm_requests_today: number;
+}

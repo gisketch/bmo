@@ -1,10 +1,17 @@
 import { useButtonPress } from '../../hooks/useButtonPress';
 
+interface StartSelectProps {
+  /** Fires when the Start button (left) is released */
+  onStartPress?: () => void;
+  /** Fires when the Select button (right) is released */
+  onSelectPress?: () => void;
+}
+
 /**
  * StartSelect — Two thin horizontal buttons side by side (Start and Select).
  * Uses the same 3D extrusion + sharp shadow pattern as DPad.
  */
-export default function StartSelect() {
+export default function StartSelect({ onStartPress, onSelectPress }: StartSelectProps) {
   const color = '#1156A3';
   const extrudeColor = '#0C3D75';
   const sharpShadowColor = 'rgba(13, 81, 66, 0.5)';
@@ -21,15 +28,29 @@ export default function StartSelect() {
   const button = (
     _label: string,
     { pressed, pressProps }: ReturnType<typeof useButtonPress>,
+    onRelease?: () => void,
   ) => {
     const pressY = pressed ? extrudeOffset : 0;
     const shadowY = pressed ? 0 : extrudeOffset + shadowOffset;
+
+    // Wrap mouse/touch up handlers to fire callback
+    const wrappedPressProps = {
+      ...pressProps,
+      onMouseUp: () => {
+        pressProps.onMouseUp();
+        onRelease?.();
+      },
+      onTouchEnd: () => {
+        pressProps.onTouchEnd();
+        onRelease?.();
+      },
+    };
 
     return (
       <div
         className="relative cursor-pointer select-none"
         style={{ width: btnW, height: btnH + extrudeOffset + shadowOffset }}
-        {...pressProps}
+        {...wrappedPressProps}
       >
         {/* Sharp shadow */}
         <div
@@ -68,8 +89,8 @@ export default function StartSelect() {
 
   return (
     <div className="flex flex-row items-center" style={{ gap }}>
-      {button('select', startBtn)}
-      {button('start', selectBtn)}
+      {button('start', startBtn, onStartPress)}
+      {button('select', selectBtn, onSelectPress)}
     </div>
   );
 }
