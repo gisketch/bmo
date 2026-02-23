@@ -16,10 +16,10 @@ The agent sometimes needs accurate, user-specific facts from Ghegi’s Obsidian 
 
 ### Modified Capabilities
 
-- `agent`: Add a tool for querying Ghegi’s Obsidian RAG service for user-specific facts (IDs, credentials, personal/work notes).
+- `agent`: add a tool for querying Ghegi’s Obsidian RAG service for user-specific facts (IDs, credentials, personal/work notes).
 
 ## Impact
 
 - Code: updates to `agent.py` (new `@function_tool` method + HTTP call).
-- Runtime: agent process needs outbound HTTP access to the Obsidian service.
-- Configuration: optional environment variable for the Obsidian service base URL (defaults to the current endpoint).
+- Runtime: agent process needs outbound HTTP access to `188.209.141.228:18000`.
+- Configuration: may introduce an environment variable for the Obsidian service base URL (optional; can default to the provided endpoint).
