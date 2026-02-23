@@ -47,7 +47,7 @@ MEM0_CONFIG = {
     "embedder": {
         "provider": "gemini",
         "config": {
-            "model": "models/text-embedding-004",
+            "model": "models/gemini-embedding-001",
         }
     }
 }
