@@ -26,6 +26,10 @@ PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "bmo.json"
 # GMT+8 timezone
 GMT_PLUS_8 = timezone(timedelta(hours=8))
 
+# ── Obsidian RAG service ─────────────────────────────────────
+
+OBSIDIAN_SEARCH_URL_DEFAULT = "http://188.209.141.228:18000/api/v1/search"
+
 
 # ── Status tracking ────────────────────────────────────────────
 
@@ -116,6 +120,54 @@ async def _fetch_deepgram_balance() -> float | None:
     except Exception as e:
         logger.warning(f"DeepGram balance fetch failed: {e}")
         return None
+
+
+async def _fetch_obsidian_search(query: str) -> str:
+    """Query Ghegi's Obsidian RAG service.
+
+    Returns the raw JSON response as text, or a safe JSON error payload.
+    """
+    cleaned = query.strip()
+    if not cleaned:
+        return json.dumps({"results": [], "error": "empty query"})
+
+    url = os.environ.get("OBSIDIAN_SEARCH_URL", OBSIDIAN_SEARCH_URL_DEFAULT)
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            resp = await client.get(url, params={"query": cleaned})
+            resp.raise_for_status()
+            try:
+                payload = resp.json()
+            except Exception:
+                return json.dumps({"results": [], "error": "invalid json from obsidian service"})
+
+            if not isinstance(payload, dict):
+                return json.dumps({"results": [], "error": "unexpected response from obsidian service"})
+
+            results = payload.get("results")
+            if not isinstance(results, list):
+                return json.dumps({"results": [], "error": "missing results from obsidian service"})
+
+            normalized_results: list[dict] = []
+            for item in results:
+                if isinstance(item, dict):
+                    normalized_item = dict(item)
+                    normalized_item.setdefault("source_path", None)
+                    normalized_item.setdefault("text", None)
+                    normalized_item.setdefault("score", None)
+                else:
+                    normalized_item = {
+                        "source_path": None,
+                        "text": None if item is None else str(item),
+                        "score": None,
+                    }
+                normalized_results.append(normalized_item)
+
+            payload["results"] = normalized_results
+            return json.dumps(payload)
+    except Exception as e:
+        logger.warning(f"Obsidian query failed: {type(e).__name__}")
+        return json.dumps({"results": [], "error": "obsidian query failed"})
 
 
 async def _build_status_response() -> str:
@@ -248,6 +300,18 @@ class Assistant(Agent):
             f"Current time (GMT+8): {now.strftime('%I:%M %p')}, "
             f"{now.strftime('%A, %B %d, %Y')}"
         )
+
+    @function_tool(
+        name="obsidian-query",
+        description=(
+            "Search Ghegi's Obsidian notes via RAG. Use when Ghegi is mentioned or when asked "
+            "for Ghegi-specific info likely stored in notes (e.g., Philhealth/SSS numbers, VPS credentials). "
+            "Input: a free-text search query. Output: JSON with a top-level 'results' array."
+        ),
+    )
+    async def obsidian_query(self, context: RunContext, query: str) -> str:
+        """Search Ghegi's Obsidian notes (RAG) and return the raw JSON results."""
+        return await _fetch_obsidian_search(query)
 
 
 server = AgentServer()

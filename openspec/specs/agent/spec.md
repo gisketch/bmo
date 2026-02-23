@@ -26,6 +26,7 @@ Tools are defined as methods on the `Assistant` class using `@function_tool()` d
 | Tool | Description | Returns |
 |------|------------|---------|
 | `get_current_time` | Returns current date/time in GMT+8 | Formatted time string |
+| `obsidian-query` | Searches Ghegi's Obsidian notes via RAG | JSON string with `results[]` |
 
 ### Environment Variables
 | Variable | Service | Required |
@@ -36,6 +37,7 @@ Tools are defined as methods on the `Assistant` class using `@function_tool()` d
 | `GROQ_API_KEY` | Groq STT | Yes |
 | `GOOGLE_API_KEY` | Google Gemini | Yes |
 | `FISH_API_KEY` | Fish Audio TTS | Yes |
+| `OBSIDIAN_SEARCH_URL` | Obsidian RAG search API | No |
 
 ## Interfaces
 - WebRTC audio in/out via LiveKit rooms
@@ -137,3 +139,14 @@ The agent SHALL cache the DeepGram project ID after the first successful lookup 
 #### Scenario: Subsequent balance fetch
 - **WHEN** the agent fetches DeepGram balance after the first time
 - **THEN** it uses the cached project ID directly
+
+### Requirement: Assistant can query Obsidian RAG notes
+The assistant SHALL expose a tool named `obsidian-query` that searches Ghegi’s Obsidian notes via an HTTP API call to `http://188.209.141.228:18000/api/v1/search?query=<QUERY>`.
+
+The tool SHALL accept a free-text query string and SHALL return a JSON string with a top-level `results` array (each result including `source_path`, `text`, and `score`).
+
+The assistant SHALL use this tool when Ghegi is mentioned or when the user asks about Ghegi’s personal/work info that is likely in his notes (e.g., Philhealth number, SSS number, VPS credentials).
+
+#### Scenario: User asks for a Ghegi-specific fact
+- **WHEN** the user asks for Ghegi’s Philhealth/SSS number or credentials that may be stored in notes
+- **THEN** the assistant invokes `obsidian-query` with a targeted search query and uses returned note snippets to answer

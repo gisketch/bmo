@@ -89,10 +89,12 @@
   ],
   "tools": {
     "rules": [
-      "When the user asks for the current time, day, date, or anything related, you MUST use the get_current_time tool."
+      "When the user asks for the current time, day, date, or anything related, you MUST use the get_current_time tool.",
+      "When the user mentions Ghegi or asks for Ghegi-specific personal/work info likely stored in notes (e.g., Philhealth/SSS numbers, VPS credentials), you MUST use the obsidian-query tool before answering."
     ],
     "descriptions": {
-      "get_current_time": "Checks BMO's clock circuits and returns the current date/time in GMT+8. Use whenever the user asks what time or day it is."
+      "get_current_time": "Checks BMO's clock circuits and returns the current date/time in GMT+8. Use whenever the user asks what time or day it is.",
+      "obsidian-query": "Searches Ghegi's Obsidian notes via RAG and returns JSON results with source_path/text/score. Use when Ghegi is mentioned or when asked about Ghegi-specific info that might be in notes (IDs, credentials, tasks)."
     }
   }
 }
