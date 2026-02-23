@@ -357,28 +357,9 @@ class Assistant(Agent):
                     if context_parts:
                         full_context = "Mem0 Memories:\n" + "\n".join(context_parts)
                         logger.info(f"Injecting RAG context: {full_context}")
-                        turn_ctx.add_message(role="assistant", content=full_context)
-            except Exception as e:
-                logger.warning(f"Failed to inject RAG context from Mem0: {e}")
-
-        await super().on_user_turn_completed(turn_ctx, new_message)
-
-    @function_tool()
-    async def get_current_time(self, context: RunContext) -> str:
-        """Check BMO's clock circuits and return the current date/time (GMT+8).
-
-        Use this whenever the user asks what time it is, what day it is, what date it is,
-        or anything related to the current date or time.
-        """
-        now = datetime.now(GMT_PLUS_8)
-        return (
-            f"Current time (GMT+8): {now.strftime('%I:%M %p')}, "
-            f"{now.strftime('%A, %B %d, %Y')}"
-        )
-
-    @function_tool(
-        name="obsidian-query",
-        description=(
+                        
+                        # Inject as a system message so it guides the assistant without looking like a fake conversation turn
+                        turn_ctx.messages.append(ChatMessage(role="system", content=full_context))
             "Search Ghegi's Obsidian notes via RAG. Use when Ghegi is mentioned or when asked "
             "for Ghegi-specific info likely stored in notes (e.g., Philhealth/SSS numbers, VPS credentials). "
             "Input: a free-text search query. Output: JSON with a top-level 'results' array."

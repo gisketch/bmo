@@ -14,8 +14,6 @@ services:
       dockerfile: Dockerfile
     command: ["uv", "run", "agent.py", "dev"]
     env_file: .env.local
-    environment:
-      - LIVEKIT_AGENTS_LOG_FORMAT=text
     network_mode: host
     restart: unless-stopped
 
