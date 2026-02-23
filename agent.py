@@ -271,12 +271,6 @@ async def entrypoint(ctx: agents.JobContext):
             turn_detection=MultilingualModel(),
         )
 
-    # ── Register RPC methods ──
-    @ctx.room.local_participant.register_rpc_method("getStatus")
-    async def handle_get_status(data: rtc.RpcInvocationData) -> str:
-        """Return current service status as JSON."""
-        return await _build_status_response()
-
     session = _create_session(ctx)
 
     # Track LLM usage via session events
@@ -294,6 +288,12 @@ async def entrypoint(ctx: agents.JobContext):
             delete_room_on_close=False,
         ),
     )
+
+    # ── Register RPC methods (must be after session.start connects to room) ──
+    @ctx.room.local_participant.register_rpc_method("getStatus")
+    async def handle_get_status(data: rtc.RpcInvocationData) -> str:
+        """Return current service status as JSON."""
+        return await _build_status_response()
 
     # Greet the first participant
     participant = await ctx.wait_for_participant()
