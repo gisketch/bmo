@@ -17,8 +17,9 @@ COPY pyproject.toml uv.lock* ./
 # Install dependencies
 RUN uv sync --no-dev --frozen
 
-# Copy agent code and prompts
+# Copy agent code, modules, and prompts
 COPY agent.py .
+COPY bmo/ bmo/
 COPY prompts/ prompts/
 
 # Download model files (Silero VAD + Turn Detector)
