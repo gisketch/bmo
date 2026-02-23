@@ -39,7 +39,7 @@ export default function StartSelect({ onStartPress, onSelectPress }: StartSelect
     // Wrap mouse/touch up handlers to fire callback
     const wrappedPressProps = {
       ...pressProps,
-      onMouseUp: (e: unknown) => {
+      onMouseUp: () => {
         pressProps.onMouseUp();
         if (Date.now() - lastTouchEndAtMs.current < 750) return;
         onRelease?.();
