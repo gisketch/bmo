@@ -15,10 +15,11 @@ Voice AI agent built on LiveKit Agents framework (Python). Uses a pipelined STT-
 ### Agent Server
 - Entry point: `agent.py`
 - Agent name: `voice-agent`
-- Agent class: `Assistant` (extends `Agent`)
+- Agent class: `Assistant` (extends `Agent`) in `bmo/assistant.py`
 - Framework: `livekit-agents ~= 1.4`
 - Uses `AgentServer` + `@server.rtc_session` pattern
 - Persistent lifecycle: connects once at startup and stays in room indefinitely
+- Code organized as `bmo/` package: `config.py`, `status.py`, `services.py`, `prompt.py`, `assistant.py`, `room.py`
 
 ### Tool Calls
 Tools are defined as methods on the `Assistant` class using `@function_tool()` decorator.
@@ -159,4 +160,19 @@ The agent SHALL use Mem0 to store and retrieve user messages and context across 
 #### Scenario: Relevant context is injected
 - **WHEN** the user completes a turn
 - **THEN** the agent asynchronously searches the Mem0 vector store for relevant memories and injects them as an `assistant` message into the chat context before the LLM generates its response.
+
+### Requirement: Agent code is organized into focused modules
+The agent codebase SHALL be organized as a `bmo/` Python package with separate modules for configuration, status tracking, external services, prompt composition, the assistant class, and room lifecycle management. The top-level `agent.py` SHALL remain the process entrypoint and SHALL import from these modules.
+
+#### Scenario: Module structure
+- **WHEN** the developer inspects the project
+- **THEN** the following modules exist: `bmo/config.py`, `bmo/status.py`, `bmo/services.py`, `bmo/prompt.py`, `bmo/assistant.py`, `bmo/room.py`, and `bmo/__init__.py`
+
+#### Scenario: Entrypoint remains agent.py
+- **WHEN** the process is started via `python agent.py`
+- **THEN** the agent starts identically to the pre-refactor behavior with no configuration changes required
+
+#### Scenario: No circular imports
+- **WHEN** the agent starts
+- **THEN** all modules load without circular import errors following the dependency flow: config ← status/services/prompt ← assistant ← agent.py/room
 
