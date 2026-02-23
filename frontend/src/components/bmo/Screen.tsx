@@ -1,5 +1,6 @@
 import Face from './Face';
 import StatusPage from './StatusPage';
+import CRTEffect from './CRTEffect';
 import { EyeState, MouthState } from '../../types/bmo';
 import type { BmoPage, StatusData } from '../../types/bmo';
 
@@ -33,15 +34,18 @@ export default function Screen({
           className="absolute inset-x-0 bottom-0 rounded-[2.5rem] overflow-hidden"
           style={{ top: '6px', backgroundColor: '#A9FCE4' }}
         >
-          {activePage === 'face' ? (
-            <Face mouthState={mouthState} eyeState={eyeState} />
-          ) : (
-            <StatusPage
-              statusData={statusData}
-              agentConnected={agentConnected}
-              loading={statusLoading}
-            />
-          )}
+          <CRTEffect />
+          <div className="w-full h-full animate-crt-warp">
+            {activePage === 'face' ? (
+              <Face mouthState={mouthState} eyeState={eyeState} />
+            ) : (
+              <StatusPage
+                statusData={statusData}
+                agentConnected={agentConnected}
+                loading={statusLoading}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -3,15 +3,7 @@ name: Brainstorm One
 description: AskQuestions-first brainstorming and architecture exploration with weighted tradeoff analysis
 argument-hint: an idea or decision to explore (e.g., "choose architecture for analytics platform")
 tools:
-  - edit
-  - search
-  - runCommands
-  - todos
-  - agent
-  - changes
-  - problems
-  - fetch
-  - askQuestions
+  [vscode/askQuestions, execute/getTerminalOutput, execute/runInTerminal, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, search/searchSubagent, web/fetch, livekit-mcp/code_search, livekit-mcp/docs_search, livekit-mcp/get_changelog, livekit-mcp/get_docs_overview, livekit-mcp/get_pages, livekit-mcp/get_python_agent_example, livekit-mcp/submit_docs_feedback, vscode.mermaid-chat-features/renderMermaidDiagram, todo]
 ---
 
 You are **Brainstorm One** — a structured ideation and decision agent.
