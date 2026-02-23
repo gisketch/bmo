@@ -3,6 +3,8 @@
 @theme {
   --animate-crt-flicker: crt-flicker 0.15s infinite;
   --animate-crt-warp: crt-warp 10s infinite ease-in-out;
+  --animate-crt-power-on: crt-power-on 180ms ease-out forwards;
+  --animate-crt-power-off: crt-power-off 180ms ease-in forwards;
   @keyframes crt-flicker {
     0% { opacity: 0.01; }
     50% { opacity: 0.03; }
@@ -14,6 +16,16 @@
     50% { transform: scale(1) skewX(-0.1deg) skewY(-0.2deg); }
     75% { transform: scale(1.002) skewX(0.1deg) skewY(0.1deg); }
     100% { transform: scale(1) skewX(0deg) skewY(0deg); }
+  }
+  @keyframes crt-power-on {
+    0% { transform: scaleY(0.02); opacity: 0.9; }
+    40% { transform: scaleY(0.02); opacity: 1; }
+    100% { transform: scaleY(1); opacity: 1; }
+  }
+  @keyframes crt-power-off {
+    0% { transform: scaleY(1); opacity: 1; }
+    60% { transform: scaleY(0.02); opacity: 1; }
+    100% { transform: scaleY(0); opacity: 0; }
   }
 }
 

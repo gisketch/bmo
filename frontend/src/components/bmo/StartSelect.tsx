@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useButtonPress } from '../../hooks/useButtonPress';
 
 interface StartSelectProps {
@@ -12,6 +13,8 @@ interface StartSelectProps {
  * Uses the same 3D extrusion + sharp shadow pattern as DPad.
  */
 export default function StartSelect({ onStartPress, onSelectPress }: StartSelectProps) {
+  const lastTouchEndAtMs = useRef(0);
+
   const color = '#1156A3';
   const extrudeColor = '#0C3D75';
   const sharpShadowColor = 'rgba(13, 81, 66, 0.5)';
@@ -36,11 +39,16 @@ export default function StartSelect({ onStartPress, onSelectPress }: StartSelect
     // Wrap mouse/touch up handlers to fire callback
     const wrappedPressProps = {
       ...pressProps,
-      onMouseUp: () => {
+      onMouseUp: (e: unknown) => {
         pressProps.onMouseUp();
+        if (Date.now() - lastTouchEndAtMs.current < 750) return;
         onRelease?.();
       },
-      onTouchEnd: () => {
+      onTouchEnd: (e: { preventDefault?: () => void } | unknown) => {
+        if (typeof e === 'object' && e && 'preventDefault' in e) {
+          (e as { preventDefault: () => void }).preventDefault();
+        }
+        lastTouchEndAtMs.current = Date.now();
         pressProps.onTouchEnd();
         onRelease?.();
       },

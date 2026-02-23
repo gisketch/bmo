@@ -1,4 +1,5 @@
 import { LedState, LED_COLORS } from '../../types/bmo';
+import Cassette from './Cassette';
 
 interface FirstRowProps {
   className?: string;
@@ -27,9 +28,10 @@ export default function FirstRow({
         style={{ backgroundColor: '#0A3A2E' }}
       >
         <div
-          className="absolute inset-x-0 bottom-0 rounded-lg"
+          className="absolute inset-x-0 bottom-0 rounded-lg z-10"
           style={{ top: '50%', backgroundColor: '#0D4538' }}
         />
+        <Cassette />
       </div>
 
       {/* LED Indicator — color and glow driven by agent state */}

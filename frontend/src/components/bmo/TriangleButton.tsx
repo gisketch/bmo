@@ -8,11 +8,13 @@ interface TriangleButtonProps {
   /** Rotation in degrees (default: 0 = pointing up) */
   rotation?: number;
   color?: string;
+  onClick?: () => void;
 }
 
 export default function TriangleButton({
   rotation = 0,
   color = '#3E9BF9',
+  onClick,
 }: TriangleButtonProps) {
   const extrudeOffset = 5;
   const shadowOffset = 4;
@@ -54,6 +56,7 @@ export default function TriangleButton({
       className="relative cursor-pointer select-none"
       style={{ width: container, height: container + extrudeOffset + shadowOffset }}
       {...pressProps}
+      onClick={onClick}
     >
       {/* Sharp shadow */}
       <div

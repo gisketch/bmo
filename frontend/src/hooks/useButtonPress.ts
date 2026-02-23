@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { playButtonSfx } from '../sfx';
 
 interface UseButtonPressOptions {
   /** Keyboard keys that trigger press (default: none) */
   keys?: string[];
+  playSfx?: boolean;
 }
 
 /**
@@ -14,8 +16,9 @@ interface UseButtonPressOptions {
  *  - pressProps: spread onto the clickable container element
  */
 export function useButtonPress(options: UseButtonPressOptions = {}) {
-  const { keys = [] } = options;
+  const { keys = [], playSfx = true } = options;
   const [pressed, setPressed] = useState(false);
+  const lastTouchAtMs = useState(() => ({ value: 0 }))[0];
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -42,11 +45,29 @@ export function useButtonPress(options: UseButtonPressOptions = {}) {
   }, [keys, handleKeyDown, handleKeyUp]);
 
   const pressProps = {
-    onMouseDown: () => setPressed(true),
-    onMouseUp: () => setPressed(false),
+    onMouseDown: (e?: { stopPropagation?: () => void }) => {
+      if (Date.now() - lastTouchAtMs.value < 750) return;
+      e?.stopPropagation?.();
+      setPressed(true);
+      if (playSfx) playButtonSfx();
+    },
+    onMouseUp: (e?: { stopPropagation?: () => void }) => {
+      if (Date.now() - lastTouchAtMs.value < 750) return;
+      e?.stopPropagation?.();
+      setPressed(false);
+    },
     onMouseLeave: () => setPressed(false),
-    onTouchStart: () => setPressed(true),
-    onTouchEnd: () => setPressed(false),
+    onTouchStart: (e?: { stopPropagation?: () => void }) => {
+      lastTouchAtMs.value = Date.now();
+      e?.stopPropagation?.();
+      setPressed(true);
+      if (playSfx) playButtonSfx();
+    },
+    onTouchEnd: (e?: { stopPropagation?: () => void }) => {
+      lastTouchAtMs.value = Date.now();
+      e?.stopPropagation?.();
+      setPressed(false);
+    },
   };
 
   return { pressed, pressProps } as const;

@@ -7,13 +7,19 @@ interface SecondRowProps {
   isMuted: boolean;
   onToggleMute: () => void;
   onStartPress?: () => void;
+  onTrianglePress?: () => void;
 }
 
 /**
  * SecondRow — Two-column row below the FirstRow.
  * Left column: DPad + StartSelect. Right column: Action buttons.
  */
-export default function SecondRow({ isMuted, onToggleMute, onStartPress }: SecondRowProps) {
+export default function SecondRow({
+  isMuted,
+  onToggleMute,
+  onStartPress,
+  onTrianglePress,
+}: SecondRowProps) {
   return (
     <div className="flex flex-row w-full justify-between px-2">
       {/* First Column — DPad + Start/Select, flushed left */}
@@ -28,7 +34,7 @@ export default function SecondRow({ isMuted, onToggleMute, onStartPress }: Secon
         <div className="flex flex-row gap-4">
           {/* Triangle container — top-aligned, 80% of DPad height */}
           <div className="flex items-start" style={{ height: 109 }}>
-            <TriangleButton />
+            <TriangleButton onClick={onTrianglePress} />
           </div>
           {/* Small circle container — bottom-aligned, 80% of DPad height */}
           <div className="flex items-end" style={{ height: 109 }}>

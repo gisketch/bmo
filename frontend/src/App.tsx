@@ -14,6 +14,7 @@ import { useAgentVisualState } from './hooks/useAgentVisualState';
 import { useTrackVolume } from './hooks/useTrackVolume';
 import { useStatusData } from './hooks/useStatusData';
 import { LedState } from './types/bmo';
+import { initSfx } from './sfx';
 import type { BmoPage } from './types/bmo';
 
 const LIVEKIT_URL = import.meta.env.VITE_LIVEKIT_URL || 'ws://localhost:7880';
@@ -28,6 +29,7 @@ export default function App() {
   const session = useSession(tokenSource);
 
   useEffect(() => {
+    initSfx();
     session.start();
     return () => {
       session.end();
@@ -52,6 +54,9 @@ function BmoLayout() {
   const connectionState = useConnectionState();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
 
+  // TODO: remove after testing disconnected UI state
+  const [forceDisconnected, setForceDisconnected] = useState(false);
+
   // Page toggle state
   const [activePage, setActivePage] = useState<BmoPage>('face');
   const togglePage = useCallback(() => {
@@ -70,13 +75,14 @@ function BmoLayout() {
   const isDisconnected =
     connectionState === ConnectionState.Disconnected ||
     connectionState === ConnectionState.Reconnecting;
-  if (isDisconnected) {
+  const disconnectedForUi = isDisconnected || forceDisconnected;
+  if (disconnectedForUi) {
     ledState = LedState.Offline;
   } else if (agent.state === 'speaking') {
     ledState = LedState.Talking;
   }
 
-  const agentConnected = !isDisconnected;
+  const agentConnected = !disconnectedForUi;
 
   // Audio-reactive glow for talking (agent output)
   const agentVolume = useTrackVolume(
@@ -87,7 +93,7 @@ function BmoLayout() {
   return (
     <Body>
       {/* Face area — top-aligned */}
-      <div className="w-full">
+      <div className="w-full flex flex-col flex-1 min-h-0">
         <Screen
           mouthState={mouth}
           eyeState={eye}
@@ -99,12 +105,15 @@ function BmoLayout() {
       </div>
 
       {/* BMO body details */}
-      <FirstRow ledState={ledState} glowIntensity={glowIntensity} />
-      <SecondRow
-        isMuted={!isMicrophoneEnabled}
-        onToggleMute={toggleMute}
-        onStartPress={togglePage}
-      />
+      <FirstRow className="shrink-0" ledState={ledState} glowIntensity={glowIntensity} />
+      <div className="shrink-0 w-full pb-24">
+        <SecondRow
+          isMuted={!isMicrophoneEnabled}
+          onToggleMute={toggleMute}
+          onStartPress={togglePage}
+          onTrianglePress={() => setForceDisconnected((prev) => !prev)}
+        />
+      </div>
 
       <RoomAudioRenderer />
     </Body>

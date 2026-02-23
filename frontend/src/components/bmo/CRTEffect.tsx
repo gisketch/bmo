@@ -11,7 +11,13 @@
  * - flickerStrength: 0.01
  * - rgbShift: 1.0
  */
-export default function CRTEffect() {
+export default function CRTEffect({
+  flicker = true,
+  reflection = true,
+}: {
+  flicker?: boolean;
+  reflection?: boolean;
+}) {
   return (
     <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden rounded-[2.5rem]">
       {/* Scanlines - Subtler and more reliable repeating gradient */}
@@ -31,18 +37,22 @@ export default function CRTEffect() {
       ></div>
 
       {/* Flicker - Animated opacity */}
-      <div className="absolute inset-0 animate-crt-flicker bg-black mix-blend-overlay"></div>
+      {flicker && (
+        <div className="absolute inset-0 animate-crt-flicker bg-black mix-blend-overlay"></div>
+      )}
 
       {/* Curvature/Warp - Simulated with a subtle inner shadow and a slight bulge effect on the edges */}
       <div className="absolute inset-0 shadow-[inset_0_0_10px_rgba(0,0,0,0.2)] rounded-[2.5rem]"></div>
       
       {/* CRT Glass Reflection - Adds to the curved feel */}
-      <div 
-        className="absolute inset-0 opacity-10"
-        style={{
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 40%, transparent 100%)'
-        }}
-      ></div>
+      {reflection && (
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 40%, transparent 100%)'
+          }}
+        ></div>
+      )}
     </div>
   );
 }
