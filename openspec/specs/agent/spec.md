@@ -28,6 +28,7 @@ Tools are defined as methods on the `Assistant` class using `@function_tool()` d
 |------|------------|---------|
 | `get_current_time` | Returns current date/time in GMT+8 | Formatted time string |
 | `obsidian-query` | Searches Ghegi's Obsidian notes via RAG | JSON string with `results[]` |
+| `present_to_cassette` | Publishes title+content to frontend via data channel | Confirmation string |
 
 ### Environment Variables
 | Variable | Service | Required |
@@ -146,9 +147,15 @@ The tool SHALL accept a free-text query string and SHALL return a JSON string wi
 
 The assistant SHALL use this tool when Ghegi is mentioned or when the user asks about Ghegi’s personal/work info that is likely in his notes (e.g., Philhealth number, SSS number, VPS credentials).
 
+When the query returns precise data (IDs, numbers, credentials), the assistant SHALL also call `present_to_cassette` to push that data to the user's screen via the cassette.
+
 #### Scenario: User asks for a Ghegi-specific fact
-- **WHEN** the user asks for Ghegi’s Philhealth/SSS number or credentials that may be stored in notes
+- **WHEN** the user asks for Ghegi's Philhealth/SSS number or credentials that may be stored in notes
 - **THEN** the assistant invokes `obsidian-query` with a targeted search query and uses returned note snippets to answer
+
+#### Scenario: Precise data is found
+- **WHEN** `obsidian-query` returns a specific ID, number, or credential
+- **THEN** the assistant also calls `present_to_cassette` to push the data to the frontend cassette
 
 ### Requirement: Agent has persistent memory
 The agent SHALL use Mem0 to store and retrieve user messages and context across sessions. The agent SHALL automatically inject relevant past context into the conversation before generating a reply.
