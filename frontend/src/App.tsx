@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   RoomAudioRenderer,
   useSession,
@@ -6,6 +6,7 @@ import {
   useAgent,
   useConnectionState,
   useLocalParticipant,
+  useRoomContext,
 } from '@livekit/components-react';
 import { ConnectionState, TokenSource } from 'livekit-client';
 import '@livekit/components-styles';
@@ -36,10 +37,19 @@ export default function App() {
     };
   }, []);
 
+  const handleReconnect = useCallback(async () => {
+    await session.end();
+    await session.start();
+  }, [session]);
+
+  const handleForceDisconnect = useCallback(async () => {
+    await session.end();
+  }, [session]);
+
   return (
     <SessionProvider session={session}>
       <div data-lk-theme="default">
-        <BmoLayout />
+        <BmoLayout onReconnect={handleReconnect} onForceDisconnect={handleForceDisconnect} />
       </div>
     </SessionProvider>
   );
@@ -48,14 +58,36 @@ export default function App() {
 /**
  * Main BMO layout — lifts agent visual state so both Face and FirstRow can use it.
  */
-function BmoLayout() {
+function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void; onForceDisconnect: () => void }) {
   const { mouth, eye } = useAgentVisualState();
   const agent = useAgent();
   const connectionState = useConnectionState();
+  const room = useRoomContext();
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
 
   // TODO: remove after testing disconnected UI state
   const [forceDisconnected, setForceDisconnected] = useState(false);
+
+  const fullyConnected = connectionState === ConnectionState.Connected && room.state === ConnectionState.Connected;
+
+  // 5-tap force disconnect on green button (2s window)
+  const tapTimestamps = useRef<number[]>([]);
+  const handleGreenPress = useCallback(() => {
+    const now = Date.now();
+    tapTimestamps.current = tapTimestamps.current.filter((t) => now - t < 2000);
+    tapTimestamps.current.push(now);
+
+    if (fullyConnected) {
+      if (tapTimestamps.current.length >= 5) {
+        tapTimestamps.current = [];
+        onForceDisconnect();
+      }
+      return;
+    }
+
+    tapTimestamps.current = [];
+    onReconnect();
+  }, [onReconnect, onForceDisconnect, fullyConnected]);
 
   // Page toggle state
   const [activePage, setActivePage] = useState<BmoPage>('face');
@@ -112,6 +144,7 @@ function BmoLayout() {
           onToggleMute={toggleMute}
           onStartPress={togglePage}
           onTrianglePress={() => setForceDisconnected((prev) => !prev)}
+          onReconnectPress={handleGreenPress}
         />
       </div>
 

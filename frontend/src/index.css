@@ -5,6 +5,8 @@
   --animate-crt-warp: crt-warp 10s infinite ease-in-out;
   --animate-crt-power-on: crt-power-on 180ms ease-out forwards;
   --animate-crt-power-off: crt-power-off 180ms ease-in forwards;
+  --animate-cassette-eject: cassette-eject 0.42s ease-in-out forwards;
+  --animate-cassette-insert: cassette-insert 0.42s ease-in-out forwards;
   @keyframes crt-flicker {
     0% { opacity: 0.01; }
     50% { opacity: 0.03; }
@@ -26,6 +28,17 @@
     0% { transform: scaleY(1); opacity: 1; }
     60% { transform: scaleY(0.02); opacity: 1; }
     100% { transform: scaleY(0); opacity: 0; }
+  }
+  @keyframes cassette-eject {
+    0% { transform: translateY(-2px); }
+    35% { transform: translateY(-26px); }
+    100% { transform: translateY(100%); }
+  }
+  @keyframes cassette-insert {
+    0% { transform: translateY(100%); }
+    60% { transform: translateY(-26px); }
+    80% { transform: translateY(-2px); }
+    100% { transform: translateY(-10px); }
   }
 }
 

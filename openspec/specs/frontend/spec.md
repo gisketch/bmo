@@ -70,11 +70,23 @@ The frontend SHALL render a circular LED indicator in the FirstRow that changes 
 - **THEN** the LED shows dark blue with no glow
 
 ### Cassette slot
-The frontend SHALL render a cassette slot in the FirstRow as a wide element with a depth-box inset (outer `#0A3A2E`, inner `#0D4538` at 50% height).
+The frontend SHALL render a cassette slot in the FirstRow as a wide element with a depth-box inset (outer `#0A3A2E`, inner `#0D4538` at 50% height). The cassette slot SHALL be interactive and allow press/release to eject or insert the cassette with a springy animation.
 
 #### Scenario: Cassette slot renders
 - **WHEN** the FirstRow renders
 - **THEN** the cassette slot is visible with the specified depth-box inset styling
+
+#### Scenario: Eject cassette
+- **WHEN** the user presses and releases the cassette slot while the cassette is inserted
+- **THEN** the cassette animates and ends fully ejected
+
+#### Scenario: Insert cassette
+- **WHEN** the user presses and releases the cassette slot while the cassette is ejected
+- **THEN** the cassette animates and ends fully inserted
+
+#### Scenario: Empty slot visual
+- **WHEN** the cassette is fully ejected
+- **THEN** the slot depth-box inset remains visible and no cassette elements remain visible within the slot
 
 ### useButtonPress hook
 The frontend SHALL provide a reusable `useButtonPress` hook that tracks press state from mouse, touch, and keyboard events, returning `{ pressed, pressProps }`.
@@ -176,4 +188,28 @@ The frontend SHALL preload UI sound effects and play them in response to user in
 #### Scenario: TV power SFX
 - **WHEN** the screen powers on or powers off
 - **THEN** the frontend plays `tv_on.wav` or `tv_off.wav` respectively
+
+#### Scenario: Cassette slot SFX
+- **WHEN** the cassette begins ejecting
+- **THEN** the frontend plays `cassette_out.wav`
+- **WHEN** the cassette begins inserting
+- **THEN** the frontend plays `cassette_in.wav`
+
+### Requirement: Reconnect via small circle button
+The frontend SHALL allow the user to reconnect to the LiveKit room by pressing the small green circle button (`#73F976`, 48px) in SecondRow. The button SHALL trigger a reconnect only when the session and room are not both in `Connected` state. The reconnect SHALL tear down the existing session via `session.end()` before calling `session.start()`. When both session and room are fully connected, the button SHALL be a no-op on single press.
+
+#### Scenario: Reconnect after idle disconnect
+- **WHEN** either the session connection state or the room state is not `Connected` and the user presses the small circle button
+- **THEN** the app calls `session.end()` followed by `session.start()` to rejoin the room
+
+#### Scenario: Button ignored while fully connected
+- **WHEN** both the session connection state and room state are `Connected` and the user presses the small circle button once
+- **THEN** nothing happens
+
+### Requirement: Force disconnect via 5-tap on small circle button
+The frontend SHALL allow the user to force disconnect from the LiveKit room by tapping the small green circle button 5 times rapidly (within a 2-second window) while fully connected. This is intended for testing the disconnected state.
+
+#### Scenario: 5-tap force disconnect
+- **WHEN** both session and room are fully connected and the user taps the small circle button 5 times within 2 seconds
+- **THEN** the app calls `session.end()` to disconnect from the room
 

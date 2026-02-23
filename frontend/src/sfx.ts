@@ -2,11 +2,15 @@ type SfxKey =
   | 'button'
   | 'tap_body'
   | 'tap_glass'
+  | 'cassette_in'
+  | 'cassette_out'
   | 'tv_on'
   | 'tv_off';
 
 const SFX_FILES = [
   'button_1.wav',
+  'cassette_in.wav',
+  'cassette_out.wav',
   'tap_body_1.wav',
   'tap_body_2.wav',
   'tap_body_3.wav',
@@ -43,6 +47,8 @@ export function initSfx() {
   });
 
   pools.set('button', createPool('/sfx/button_1.wav', 4));
+  pools.set('cassette_in', createPool('/sfx/cassette_in.wav', 2));
+  pools.set('cassette_out', createPool('/sfx/cassette_out.wav', 2));
   pools.set('tap_body', [
     ...createPool('/sfx/tap_body_1.wav', 2),
     ...createPool('/sfx/tap_body_2.wav', 2),
@@ -86,6 +92,14 @@ export function playTapBodySfx() {
 
 export function playTapGlassSfx() {
   playFromPool('tap_glass', 'random');
+}
+
+export function playCassetteInSfx() {
+  playFromPool('cassette_in', 'round-robin');
+}
+
+export function playCassetteOutSfx() {
+  playFromPool('cassette_out', 'round-robin');
 }
 
 export function playTvOnSfx() {

@@ -8,6 +8,7 @@ interface SecondRowProps {
   onToggleMute: () => void;
   onStartPress?: () => void;
   onTrianglePress?: () => void;
+  onReconnectPress?: () => void;
 }
 
 /**
@@ -19,6 +20,7 @@ export default function SecondRow({
   onToggleMute,
   onStartPress,
   onTrianglePress,
+  onReconnectPress,
 }: SecondRowProps) {
   return (
     <div className="flex flex-row w-full justify-between px-2">
@@ -38,7 +40,7 @@ export default function SecondRow({
           </div>
           {/* Small circle container — bottom-aligned, 80% of DPad height */}
           <div className="flex items-end" style={{ height: 109 }}>
-            <CircleButton size={48} color="#73F976" />
+            <CircleButton size={48} color="#73F976" onClick={onReconnectPress} />
           </div>
         </div>
         {/* Big circle — mute/unmute button */}
