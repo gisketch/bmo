@@ -340,7 +340,16 @@ async def entrypoint(ctx: agents.JobContext):
                 instructions="Greet the user. They just reconnected. Welcome them back warmly. Mention Ghegi but use <|phoneme_start|>G EH G IY<|phoneme_end|>"
             )
         except Exception as e:
+            err_msg = str(e).lower()
             logger.warning(f"Error in participant lifecycle: {e}")
+            if "disconnected" in err_msg or "closed" in err_msg:
+                # Room connection lost — re-dispatch a fresh agent and exit this job
+                logger.info("Room connection lost. Re-dispatching agent...")
+                try:
+                    await ensure_room_and_dispatch()
+                except Exception as dispatch_err:
+                    logger.warning(f"Re-dispatch failed: {dispatch_err}")
+                break
             await asyncio.sleep(2)
 
 
