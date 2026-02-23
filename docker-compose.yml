@@ -12,6 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    command: ["uv", "run", "agent.py", "dev"]
     env_file: .env.local
     environment:
       - LIVEKIT_AGENTS_LOG_FORMAT=text
