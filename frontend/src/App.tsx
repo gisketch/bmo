@@ -8,7 +8,7 @@ import {
   useLocalParticipant,
   useRoomContext,
 } from '@livekit/components-react';
-import { ConnectionState, TokenSource } from 'livekit-client';
+import { ConnectionState, TokenSource, RoomEvent } from 'livekit-client';
 import '@livekit/components-styles';
 import { Body, FirstRow, Screen, SecondRow } from './components/bmo';
 import { useAgentVisualState } from './hooks/useAgentVisualState';
@@ -97,6 +97,21 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
 
   // Status data (only fetches when status page is active)
   const { data: statusData, loading: statusLoading } = useStatusData(activePage === 'status');
+
+  useEffect(() => {
+    const handleDataReceived = (payload: Uint8Array, _participant: unknown, _kind: unknown, topic?: string) => {
+      if (topic !== 'cassette') return;
+      try {
+        const message = JSON.parse(new TextDecoder().decode(payload));
+        console.log('CASSETTE MESSAGE RECEIVED:', message);
+      } catch {
+        // ignore malformed payloads
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleDataReceived);
+    return () => { room.off(RoomEvent.DataReceived, handleDataReceived); };
+  }, [room]);
 
   const toggleMute = useCallback(() => {
     localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);

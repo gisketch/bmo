@@ -1,4 +1,5 @@
 import asyncio
+import json
 from datetime import datetime
 
 from livekit.agents import Agent, function_tool, RunContext
@@ -73,3 +74,21 @@ class Assistant(Agent):
     )
     async def obsidian_query(self, context: RunContext, query: str) -> str:
         return await fetch_obsidian_search(query)
+
+    @function_tool(
+        name="present_to_cassette",
+        description=(
+            "Present physical text to the user through BMO's cassette slot. "
+            "Use for precise data like ID numbers, credentials, codes, or any info "
+            "the user would want to read rather than just hear."
+        ),
+    )
+    async def present_to_cassette(self, context: RunContext, title: str, content: str) -> str:
+        try:
+            room = context.session.room_io.room
+            payload = json.dumps({"type": "cassette", "title": title, "content": content})
+            await room.local_participant.publish_data(payload, topic="cassette")
+            return f"Cassette sent: '{title}' delivered to screen."
+        except Exception as e:
+            logger.warning(f"Failed to send cassette message: {e}")
+            return "Could not send cassette message — screen unavailable."
