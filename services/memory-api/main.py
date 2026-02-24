@@ -142,7 +142,7 @@ def update_memory(memory_id: str, body: UpdateBody, pin: str | None = Query(defa
         qdrant = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
         qdrant.set_payload(
             collection_name="mem0",
-            payload={"metadata": {"category": body.category}},
+            payload={"category": body.category},
             points=[memory_id],
         )
     return {"ok": True, "id": memory_id, "memory": text, "category": body.category}
