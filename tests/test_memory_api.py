@@ -82,6 +82,63 @@ class MemoryApiTests(unittest.TestCase):
         body = resp.json()
         self.assertEqual(body["memories"][0]["category"], "uncategorized")
 
+    @patch.object(memory_api_main, "mem0_client")
+    def test_get_memories_includes_timestamps(self, mock_client: MagicMock):
+        mock_client.get_all.return_value = {
+            "results": [
+                {
+                    "id": "t1",
+                    "memory": "Test",
+                    "metadata": {"category": "goals"},
+                    "created_at": "2025-01-15T10:00:00Z",
+                    "updated_at": "2025-01-16T12:00:00Z",
+                },
+            ]
+        }
+        resp = self.client.get("/api/memories?pin=4869")
+        self.assertEqual(resp.status_code, 200)
+        mem = resp.json()["memories"][0]
+        self.assertEqual(mem["created_at"], "2025-01-15T10:00:00Z")
+        self.assertEqual(mem["updated_at"], "2025-01-16T12:00:00Z")
+
+    @patch.object(memory_api_main, "mem0_client")
+    def test_add_memory_valid(self, mock_client: MagicMock):
+        mock_client.add.return_value = {"results": [{"id": "new1"}]}
+        resp = self.client.post(
+            "/api/memories?pin=4869",
+            json={"memory": "New memory", "category": "goals"},
+        )
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["category"], "goals")
+        mock_client.add.assert_called_once()
+
+    @patch.object(memory_api_main, "mem0_client")
+    def test_add_memory_default_category(self, mock_client: MagicMock):
+        mock_client.add.return_value = {"results": [{"id": "new2"}]}
+        resp = self.client.post(
+            "/api/memories?pin=4869",
+            json={"memory": "No category given"},
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json()["category"], "uncategorized")
+
+    @patch.object(memory_api_main, "mem0_client")
+    def test_add_memory_empty_text(self, mock_client: MagicMock):
+        resp = self.client.post(
+            "/api/memories?pin=4869",
+            json={"memory": "   ", "category": "goals"},
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_add_memory_wrong_pin(self):
+        resp = self.client.post(
+            "/api/memories?pin=0000",
+            json={"memory": "text"},
+        )
+        self.assertEqual(resp.status_code, 401)
+
     def test_cors_headers(self):
         resp = self.client.get("/api/memories?pin=0000", headers={"Origin": "http://localhost:3001"})
         self.assertIn("access-control-allow-origin", resp.headers)

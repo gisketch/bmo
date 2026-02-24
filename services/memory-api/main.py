@@ -47,7 +47,7 @@ app = FastAPI(title="BMO Memory API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -65,6 +65,11 @@ def _require_client() -> Memory:
 
 class UpdateBody(BaseModel):
     memory: str
+
+
+class AddBody(BaseModel):
+    memory: str
+    category: str = "uncategorized"
 
 
 @app.get("/api/memories")
@@ -85,11 +90,40 @@ def get_memories(pin: str | None = Query(default=None)):
         text = item.get("memory", "")
         metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
         category = metadata.get("category", "uncategorized") if isinstance(metadata, dict) else "uncategorized"
+        created_at = item.get("created_at", "")
+        updated_at = item.get("updated_at", "")
         if not isinstance(memory_id, str) or not isinstance(text, str):
             continue
-        memories.append({"id": memory_id, "memory": text, "category": category or "uncategorized"})
+        memories.append({
+            "id": memory_id,
+            "memory": text,
+            "category": category or "uncategorized",
+            "created_at": created_at or "",
+            "updated_at": updated_at or "",
+        })
 
     return {"memories": memories}
+
+
+@app.post("/api/memories")
+def add_memory(body: AddBody, pin: str | None = Query(default=None)):
+    _check_pin(pin)
+    client = _require_client()
+
+    text = body.memory.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="missing or empty memory field")
+
+    category = body.category.strip() or "uncategorized"
+    result = client.add(text, user_id=USER_ID, metadata={"category": category})
+
+    new_id = ""
+    if isinstance(result, dict):
+        results = result.get("results", [])
+        if results and isinstance(results, list) and isinstance(results[0], dict):
+            new_id = results[0].get("id", "")
+
+    return {"ok": True, "id": new_id, "memory": text, "category": category}
 
 
 @app.put("/api/memories/{memory_id}")
