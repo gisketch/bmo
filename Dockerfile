@@ -21,6 +21,7 @@ RUN uv sync --no-dev --frozen
 COPY agent.py .
 COPY bmo/ bmo/
 COPY prompts/ prompts/
+COPY scripts/ scripts/
 
 # Download model files (Silero VAD + Turn Detector)
 RUN uv run agent.py download-files
