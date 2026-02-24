@@ -17,6 +17,11 @@ GMT_PLUS_8 = timezone(timedelta(hours=8))
 OBSIDIAN_SEARCH_URL_DEFAULT = "http://188.209.141.228:18000/api/v1/search"
 WATCHDOG_INTERVAL = 30
 
+_MEM0_SETTING_RAW = (os.getenv("MEM0_SETTING") or "GATED").strip().upper()
+MEM0_SETTING = _MEM0_SETTING_RAW if _MEM0_SETTING_RAW in {"NORMAL", "GATED"} else "GATED"
+
+logger.info(f"MEM0_SETTING={MEM0_SETTING}")
+
 MEM0_CONFIG = {
     "vector_store": {
         "provider": "qdrant",

@@ -32,6 +32,18 @@ Turn Detection: Multilingual (local)
 
 Edit `.env.local` with your keys.
 
+### Mem0 Memory Mode
+
+This project uses Mem0 for persistent memory. You can control how aggressively memories are stored/retrieved with `MEM0_SETTING` in `.env.local`.
+
+```
+# Default (recommended): stores only durable, categorized memories; retrieves only when needed
+MEM0_SETTING=GATED
+
+# Legacy behavior: stores every user turn and runs retrieval on every turn
+MEM0_SETTING=NORMAL
+```
+
 ---
 
 ## 2. VPS Setup (one-time)
