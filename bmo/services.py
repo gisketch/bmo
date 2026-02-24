@@ -1,7 +1,10 @@
+import asyncio
 import json
 import os
 
 import httpx
+from duckduckgo_search import DDGS
+from duckduckgo_search.exceptions import DuckDuckGoSearchException, RatelimitException, TimeoutException
 
 from bmo.config import OBSIDIAN_SEARCH_URL_DEFAULT, logger
 
@@ -49,3 +52,55 @@ async def fetch_obsidian_search(query: str) -> str:
     except Exception as e:
         logger.warning(f"Obsidian query failed: {type(e).__name__}")
         return json.dumps({"results": [], "error": "obsidian query failed"})
+
+
+_TEXT_FIELDS = ("title", "href", "body")
+_NEWS_FIELDS = ("date", "title", "body", "url", "source")
+_VIDEO_FIELDS = ("title", "description", "content", "publisher", "duration")
+
+_MODE_CONFIG: dict[str, tuple[str, tuple[str, ...]]] = {
+    "text": ("text", _TEXT_FIELDS),
+    "news": ("news", _NEWS_FIELDS),
+    "videos": ("videos", _VIDEO_FIELDS),
+}
+
+
+def _run_ddgs_search(query: str, mode: str, max_results: int, timelimit: str | None) -> list[dict]:
+    method_name, _ = _MODE_CONFIG.get(mode, _MODE_CONFIG["text"])
+    ddgs = DDGS(timeout=12)
+    search_fn = getattr(ddgs, method_name)
+    kwargs: dict = {"keywords": query, "max_results": max_results}
+    if timelimit:
+        kwargs["timelimit"] = timelimit
+    return search_fn(**kwargs)
+
+
+def _normalize_results(raw: list[dict], mode: str) -> list[dict]:
+    _, fields = _MODE_CONFIG.get(mode, _MODE_CONFIG["text"])
+    return [{k: item.get(k) for k in fields} for item in raw if isinstance(item, dict)]
+
+
+async def search_duckduckgo(query: str, mode: str = "text", max_results: int = 5, timelimit: str | None = None) -> str:
+    cleaned = query.strip()
+    if not cleaned:
+        return json.dumps({"results": [], "error": "empty query"})
+
+    mode = mode if mode in _MODE_CONFIG else "text"
+    max_results = min(max(max_results, 1), 10)
+
+    try:
+        raw = await asyncio.to_thread(_run_ddgs_search, cleaned, mode, max_results, timelimit)
+        results = _normalize_results(raw, mode)
+        return json.dumps({"results": results, "mode": mode, "query": cleaned})
+    except RatelimitException:
+        logger.warning("DuckDuckGo rate limited")
+        return json.dumps({"results": [], "error": "rate limited"})
+    except TimeoutException:
+        logger.warning("DuckDuckGo search timed out")
+        return json.dumps({"results": [], "error": "search timed out"})
+    except DuckDuckGoSearchException as e:
+        logger.warning(f"DuckDuckGo search error: {e}")
+        return json.dumps({"results": [], "error": str(e)})
+    except Exception as e:
+        logger.warning(f"DuckDuckGo search failed: {type(e).__name__}")
+        return json.dumps({"results": [], "error": "search failed"})

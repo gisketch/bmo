@@ -9,7 +9,7 @@ from bmo.config import PROMPT_PATH, GMT_PLUS_8, MEM0_SETTING, mem0_client, logge
 from bmo.llm_gatekeeper import run_llm_gatekeeper
 from bmo.memory_policy import gatekeep_durable_memories
 from bmo.prompt import load_prompt, compose_instructions
-from bmo.services import fetch_obsidian_search
+from bmo.services import fetch_obsidian_search, search_duckduckgo
 
 
 class Assistant(Agent):
@@ -181,3 +181,31 @@ class Assistant(Agent):
         except Exception as e:
             logger.warning(f"Failed to send cassette message: {e}")
             return "Could not send cassette message — screen unavailable."
+
+    @function_tool(
+        name="search_internet",
+        description=(
+            "Search the internet using DuckDuckGo. Use when the user asks general knowledge questions, "
+            "current events, news, or anything not in Ghegi's personal notes. "
+            "Modes: 'text' (web pages), 'news' (recent articles), 'videos' (video results). "
+            "Input: query, mode, loading_message, and optional max_results/timelimit. "
+            "Output: JSON with a top-level 'results' array."
+        ),
+    )
+    async def search_internet(
+        self,
+        context: RunContext,
+        query: str,
+        loading_message: str,
+        mode: str = "text",
+        max_results: int = 5,
+        timelimit: str | None = None,
+    ) -> str:
+        try:
+            room = context.session.room_io.room
+            payload = json.dumps({"type": "loading-status", "text": loading_message})
+            await room.local_participant.publish_data(payload, topic="loading-status")
+        except Exception as e:
+            logger.warning(f"Failed to send loading status: {e}")
+
+        return await search_duckduckgo(query, mode=mode, max_results=max_results, timelimit=timelimit)
