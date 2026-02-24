@@ -3,8 +3,6 @@ import json
 import os
 
 import httpx
-from duckduckgo_search import DDGS
-from duckduckgo_search.exceptions import DuckDuckGoSearchException, RatelimitException, TimeoutException
 
 from bmo.config import OBSIDIAN_SEARCH_URL_DEFAULT, logger
 
@@ -54,53 +52,62 @@ async def fetch_obsidian_search(query: str) -> str:
         return json.dumps({"results": [], "error": "obsidian query failed"})
 
 
-_TEXT_FIELDS = ("title", "href", "body")
-_NEWS_FIELDS = ("date", "title", "body", "url", "source")
-_VIDEO_FIELDS = ("title", "description", "content", "publisher", "duration")
-
-_MODE_CONFIG: dict[str, tuple[str, tuple[str, ...]]] = {
-    "text": ("text", _TEXT_FIELDS),
-    "news": ("news", _NEWS_FIELDS),
-    "videos": ("videos", _VIDEO_FIELDS),
-}
+_VALID_TOPICS = {"general", "news", "finance"}
+_VALID_TIME_RANGES = {"day", "week", "month", "year", "d", "w", "m", "y"}
+_RESULT_FIELDS = ("title", "url", "content", "score")
 
 
-def _run_ddgs_search(query: str, mode: str, max_results: int, timelimit: str | None) -> list[dict]:
-    method_name, _ = _MODE_CONFIG.get(mode, _MODE_CONFIG["text"])
-    ddgs = DDGS(timeout=12)
-    search_fn = getattr(ddgs, method_name)
-    kwargs: dict = {"keywords": query, "max_results": max_results}
-    if timelimit:
-        kwargs["timelimit"] = timelimit
-    return search_fn(**kwargs)
+def _run_tavily_search(
+    query: str, topic: str, max_results: int, time_range: str | None
+) -> dict:
+    from tavily import TavilyClient
+
+    api_key = os.environ.get("TAVILY_API_KEY", "")
+    if not api_key:
+        return {"results": [], "error": "TAVILY_API_KEY not set"}
+
+    client = TavilyClient(api_key=api_key)
+    kwargs: dict = {
+        "query": query,
+        "topic": topic,
+        "max_results": max_results,
+        "search_depth": "basic",
+    }
+    if time_range:
+        kwargs["time_range"] = time_range
+    return client.search(**kwargs)
 
 
-def _normalize_results(raw: list[dict], mode: str) -> list[dict]:
-    _, fields = _MODE_CONFIG.get(mode, _MODE_CONFIG["text"])
-    return [{k: item.get(k) for k in fields} for item in raw if isinstance(item, dict)]
+def _normalize_tavily_results(raw_response: dict) -> list[dict]:
+    results = raw_response.get("results", [])
+    return [
+        {k: item.get(k) for k in _RESULT_FIELDS}
+        for item in results
+        if isinstance(item, dict)
+    ]
 
 
-async def search_duckduckgo(query: str, mode: str = "text", max_results: int = 5, timelimit: str | None = None) -> str:
+async def search_tavily(
+    query: str,
+    topic: str = "general",
+    max_results: int = 5,
+    time_range: str | None = None,
+) -> str:
     cleaned = query.strip()
     if not cleaned:
         return json.dumps({"results": [], "error": "empty query"})
 
-    mode = mode if mode in _MODE_CONFIG else "text"
-    max_results = min(max(max_results, 1), 10)
+    topic = topic if topic in _VALID_TOPICS else "general"
+    max_results = min(max(max_results, 1), 20)
+    if time_range and time_range not in _VALID_TIME_RANGES:
+        time_range = None
 
     try:
-        raw = await asyncio.to_thread(_run_ddgs_search, cleaned, mode, max_results, timelimit)
-        results = _normalize_results(raw, mode)
-        return json.dumps({"results": results, "mode": mode, "query": cleaned})
-    except RatelimitException:
-        logger.warning("DuckDuckGo rate limited")
-        return json.dumps({"results": [], "error": "rate limited"})
-    except TimeoutException:
-        logger.warning("DuckDuckGo search timed out")
-        return json.dumps({"results": [], "error": "search timed out"})
-    except DuckDuckGoSearchException as e:
-        logger.warning(f"DuckDuckGo search error: {e}")
-        return json.dumps({"results": [], "error": str(e)})
+        raw = await asyncio.to_thread(_run_tavily_search, cleaned, topic, max_results, time_range)
+        if "error" in raw and not raw.get("results"):
+            return json.dumps(raw)
+        results = _normalize_tavily_results(raw)
+        return json.dumps({"results": results, "topic": topic, "query": cleaned})
     except Exception as e:
-        logger.warning(f"DuckDuckGo search failed: {type(e).__name__}")
+        logger.warning(f"Tavily search failed: {type(e).__name__}: {e}")
         return json.dumps({"results": [], "error": "search failed"})

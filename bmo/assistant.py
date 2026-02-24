@@ -9,7 +9,7 @@ from bmo.config import PROMPT_PATH, GMT_PLUS_8, MEM0_SETTING, mem0_client, logge
 from bmo.llm_gatekeeper import run_llm_gatekeeper
 from bmo.memory_policy import gatekeep_durable_memories
 from bmo.prompt import load_prompt, compose_instructions
-from bmo.services import fetch_obsidian_search, search_duckduckgo
+from bmo.services import fetch_obsidian_search, search_tavily
 
 
 class Assistant(Agent):
@@ -185,10 +185,10 @@ class Assistant(Agent):
     @function_tool(
         name="search_internet",
         description=(
-            "Search the internet using DuckDuckGo. Use when the user asks general knowledge questions, "
-            "current events, news, or anything not in Ghegi's personal notes. "
-            "Modes: 'text' (web pages), 'news' (recent articles), 'videos' (video results). "
-            "Input: query, mode, loading_message, and optional max_results/timelimit. "
+            "Search the internet using Tavily. Use when the user asks general knowledge questions, "
+            "current events, news, finance, or anything not in Ghegi's personal notes. "
+            "Topics: 'general' (web), 'news' (articles), 'finance' (financial data). "
+            "Input: query, loading_message, and optional topic/max_results/time_range. "
             "Output: JSON with a top-level 'results' array."
         ),
     )
@@ -197,9 +197,9 @@ class Assistant(Agent):
         context: RunContext,
         query: str,
         loading_message: str,
-        mode: str = "text",
+        topic: str = "general",
         max_results: int = 5,
-        timelimit: str | None = None,
+        time_range: str | None = None,
     ) -> str:
         try:
             room = context.session.room_io.room
@@ -208,4 +208,6 @@ class Assistant(Agent):
         except Exception as e:
             logger.warning(f"Failed to send loading status: {e}")
 
-        return await search_duckduckgo(query, mode=mode, max_results=max_results, timelimit=timelimit)
+        result = await search_tavily(query, topic=topic, max_results=max_results, time_range=time_range)
+        logger.info(f"search_internet query={query!r} topic={topic} → {result[:500]}")
+        return result
