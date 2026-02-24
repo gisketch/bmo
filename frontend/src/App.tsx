@@ -20,6 +20,7 @@ import type { CassetteMessage } from './types/bmo';
 import { initSfx, playCassetteInSfx, playCassetteOutSfx } from './sfx';
 import { playBmoHmmSfx } from './sfx';
 import type { BmoPage } from './types/bmo';
+import MemoriesPage from './components/MemoriesPage';
 
 const CASSETTE_ANIMATION_MS = 420;
 
@@ -32,6 +33,14 @@ const tokenSource = TokenSource.literal({
 });
 
 export default function App() {
+  if (window.location.pathname === '/memories') {
+    return <MemoriesPage />;
+  }
+
+  return <BmoApp />;
+}
+
+function BmoApp() {
   const session = useSession(tokenSource);
 
   useEffect(() => {
