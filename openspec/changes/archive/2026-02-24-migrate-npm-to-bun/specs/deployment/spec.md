@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Web service build and serving use Bun
 The project SHALL build the Vite frontend using Bun during the web Docker image build, and the resulting static files SHALL be served without requiring npm.

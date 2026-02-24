@@ -168,6 +168,8 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
   const cassetteMessageRef = useRef<CassetteMessage | null>(null);
   const cassetteTimerRef = useRef<number | null>(null);
 
+  const [loadingStatusText, setLoadingStatusText] = useState<string | null>(null);
+
   useEffect(() => {
     if (cassettePhase !== 'insert') return;
     triggerTransientShake();
@@ -266,6 +268,25 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
     return () => { room.off(RoomEvent.DataReceived, handleDataReceived); };
   }, [room, clearCassetteTimer, startCassetteInsert]);
 
+  useEffect(() => {
+    const handleLoadingStatus = (payload: Uint8Array, _participant: unknown, _kind: unknown, topic?: string) => {
+      if (topic !== 'loading-status') return;
+      try {
+        const message = JSON.parse(new TextDecoder().decode(payload)) as unknown;
+        if (!message || typeof message !== 'object') return;
+        const text = (message as { text?: unknown }).text;
+        if (typeof text === 'string' && text.trim()) {
+          setLoadingStatusText(text);
+        }
+      } catch {
+        // ignore malformed payloads
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleLoadingStatus);
+    return () => { room.off(RoomEvent.DataReceived, handleLoadingStatus); };
+  }, [room]);
+
   const toggleMute = useCallback(() => {
     localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
   }, [localParticipant, isMicrophoneEnabled]);
@@ -307,7 +328,14 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
     if (faceOverrideEnabled) return;
     if (prev === agent.state) return;
     if (agent.state === 'thinking') playBmoHmmSfx();
+    if (prev === 'thinking') setLoadingStatusText(null);
   }, [agent.state, faceOverrideEnabled]);
+
+  useEffect(() => {
+    if (isDisconnected) setLoadingStatusText(null);
+  }, [isDisconnected]);
+
+  const loadingActive = !!loadingStatusText && !isDisconnected;
 
   const faceState = overridePreset
     ? overridePreset
@@ -315,11 +343,13 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
       ? { mouth: MouthState.OpenSmile, eye: EyeState.ClosedSquished }
       : beepBoopOverrideActive
         ? { mouth: MouthState.MouthOh, eye: EyeState.ClosedSquished }
-        : thinkingPoseActive
-          ? { mouth: MouthState.FlatTilt, eye: EyeState.Normal }
-        : cassetteOverrideActive
-          ? { mouth: MouthState.OpenSmile, eye: EyeState.Normal }
-          : baseVisualState;
+        : loadingActive
+          ? { mouth: MouthState.Smile, eye: EyeState.Normal }
+          : thinkingPoseActive
+            ? { mouth: MouthState.FlatTilt, eye: EyeState.Normal }
+          : cassetteOverrideActive
+            ? { mouth: MouthState.OpenSmile, eye: EyeState.Normal }
+            : baseVisualState;
 
   const faceEffect = overridePreset?.effect ?? (shakeOverrideActive ? 'shake' : undefined);
   const faceEffectKey = overridePreset
@@ -338,8 +368,12 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
         : undefined
   );
 
-  const faceMode = overridePreset?.mode;
-  const loadingText = overridePreset && 'loadingText' in overridePreset ? overridePreset.loadingText : undefined;
+  const faceMode = overridePreset?.mode ?? (loadingActive ? 'loading' : undefined);
+  const loadingText = overridePreset && 'loadingText' in overridePreset
+    ? overridePreset.loadingText
+    : loadingActive
+      ? loadingStatusText
+      : undefined;
 
   return (
     <Body>

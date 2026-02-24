@@ -1,5 +1,42 @@
 # Deployment Domain Spec
 
+## Purpose
+Define how the project is deployed (LiveKit server, reverse proxy, agent, and static web frontend) with constraints required for reliable WebRTC connectivity.
+## Requirements
+### Requirement: LiveKit server MUST use host networking
+The LiveKit Server deployment MUST use host networking (NOT Docker port mapping) to avoid iptables issues when exposing large UDP port ranges.
+
+#### Scenario: LiveKit server runs with host network
+- **WHEN** LiveKit Server is deployed via Docker
+- **THEN** it runs with `--network host` (or `network_mode: host`) and does not rely on port mappings for the UDP media port range
+
+### Requirement: Firewall ports are exposed
+The VPS firewall SHALL expose the documented ports required for TLS, WebSocket signaling, TURN, and WebRTC media.
+
+#### Scenario: Browser can connect to LiveKit
+- **WHEN** a user opens the frontend and initiates a connection
+- **THEN** the browser can reach the LiveKit signaling endpoint and establish media transport through the exposed ports
+
+### Requirement: Web service build and serving use Bun
+The project SHALL build the Vite frontend using Bun during the web Docker image build, and the resulting static files SHALL be served without requiring npm.
+
+#### Scenario: Web image builds static bundle
+- **WHEN** the web Docker image is built with `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, and `LIVEKIT_URL`
+- **THEN** the image build runs `bun install` and `bun run build` successfully and produces a `dist/` directory
+
+#### Scenario: Web image serves static bundle
+- **WHEN** the web container starts
+- **THEN** it serves the contents of `dist/` via Bun on the configured port (e.g., `bun serve.ts` or `bunx serve -s dist`)
+
+### Requirement: Build-time token generation runs under Bun
+The project SHALL invoke the token generation script (`scripts/generate-token.mjs`) using Bun during the frontend Docker build to produce the `VITE_LIVEKIT_TOKEN` environment variable baked into the bundle.
+
+#### Scenario: Build-time token is generated
+- **WHEN** the web Docker image build runs the token generation step
+- **THEN** the step executes `generate-token.mjs` via `bun` with `LIVEKIT_API_KEY` and `LIVEKIT_API_SECRET` provided and exports `VITE_LIVEKIT_TOKEN` for the Vite build
+
+## Notes
+
 ## Overview
 Self-hosted LiveKit infrastructure on HostHatch VPS (12GB RAM, AMD EPYC). IP: `188.209.141.228`.
 

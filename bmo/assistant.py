@@ -69,10 +69,18 @@ class Assistant(Agent):
         description=(
             "Search Ghegi's Obsidian notes via RAG. Use when Ghegi is mentioned or when asked "
             "for Ghegi-specific info likely stored in notes (e.g., Philhealth/SSS numbers, VPS credentials). "
-            "Input: a free-text search query. Output: JSON with a top-level 'results' array."
+            "Input: a free-text search query and a short BMO-style loading_message describing what you're searching for. "
+            "Output: JSON with a top-level 'results' array."
         ),
     )
-    async def obsidian_query(self, context: RunContext, query: str) -> str:
+    async def obsidian_query(self, context: RunContext, query: str, loading_message: str) -> str:
+        try:
+            room = context.session.room_io.room
+            payload = json.dumps({"type": "loading-status", "text": loading_message})
+            await room.local_participant.publish_data(payload, topic="loading-status")
+        except Exception as e:
+            logger.warning(f"Failed to send loading status: {e}")
+
         return await fetch_obsidian_search(query)
 
     @function_tool(
