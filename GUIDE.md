@@ -43,6 +43,16 @@ MEM0_SETTING=GATED
 
 # Legacy behavior: stores every user turn and runs retrieval on every turn
 MEM0_SETTING=NORMAL
+
+### Backfill legacy memories
+
+If you have older Mem0 entries that were stored as raw transcripts (no `metadata.category`), you can backfill them into clean, categorized canonical memories using the script below.
+
+Dry-run first:
+`uv run python scripts/backfill-mem0-memories.py --dry-run`
+
+Apply (adds categorized canonical memories and deletes the original legacy entries once a durable replacement is created):
+`uv run python scripts/backfill-mem0-memories.py`
 ```
 
 ---

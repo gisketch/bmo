@@ -40,3 +40,11 @@ In `GATED` mode, stored memories SHALL be categorized to support future filtered
 #### Scenario: Retrieval injects only durable categories
 - **WHEN** the system stores curated durable memories
 - **THEN** those stored memories can be retrieved later using category metadata filters
+
+### Requirement: Backfill legacy uncategorized memories
+The system SHALL provide a developer-run backfill script that converts legacy uncategorized memories into categorized canonical memories using the same memory gatekeeper logic.
+
+#### Scenario: Legacy memories are migrated
+- **WHEN** a developer runs the backfill script for a user
+- **THEN** the script adds categorized canonical memories for durable facts/preferences/goals/relationships
+- **AND** the script deletes the original legacy memory only after at least one durable replacement memory is successfully added

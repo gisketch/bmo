@@ -26,6 +26,10 @@
 
 - [x] 4.1 Update `GUIDE.md` (or equivalent) to document `MEM0_SETTING`, modes, and default behavior
 
-## 5. Verification
+## 5. Backfill
 
-- [x] 5.1 Run targeted verification to ensure the agent imports/starts cleanly and gated mode does not block the event loop
+- [x] 5.1 Add a developer-run script to backfill legacy uncategorized memories into categorized canonical ones
+
+## 6. Verification
+
+- [x] 6.1 Run targeted verification to ensure the agent imports/starts cleanly and gated mode does not block the event loop

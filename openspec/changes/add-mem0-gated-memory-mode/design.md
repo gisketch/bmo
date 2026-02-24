@@ -68,6 +68,10 @@ Rationale:
 - Enables deterministic retrieval filters.
 - Keeps the memory store queryable and auditable.
 
+### D6: Backfill legacy memories by add+delete
+Mem0 OSS `update(memory_id, data)` updates only the memory content and does not allow updating metadata fields like `category`.
+To migrate legacy memories that lack `metadata.category`, we add categorized canonical replacements and delete the original legacy entry once a durable replacement exists.
+
 ### D4: Trigger-based retrieval/injection in `GATED` mode
 We will keep retrieval/injection behavior unchanged across modes.
 
