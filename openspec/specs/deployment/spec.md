@@ -19,8 +19,8 @@ Self-hosted LiveKit infrastructure on HostHatch VPS (12GB RAM, AMD EPYC). IP: `1
 
 ### Web Service
 - Serves pre-built Vite frontend as static files (no Express server)
-- Uses `npx serve -s dist` for static file serving on port 3001
-- LiveKit token generated at build time via `scripts/generate-token.mjs` and baked into the Vite bundle
+- Uses Bun to serve static files on port 3001 (web image runs `bun frontend/serve.ts`)
+- LiveKit token generated at build time via `scripts/generate-token.mjs` (executed with Bun) and baked into the Vite bundle
 - Build args: `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`
 
 ### Agent Deployment

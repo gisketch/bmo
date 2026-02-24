@@ -14,7 +14,7 @@ interface EyeProps {
  * TODO: Extend with eyeState-driven rendering when new eye states
  * (e.g. Happy, Angry, Sleepy) are added to the EyeState enum.
  */
-export default function Eye({ eyeState, isBlinking, side = 'left' }: EyeProps): JSX.Element {
+export default function Eye({ eyeState, isBlinking, side = 'left' }: EyeProps) {
   if (eyeState === EyeState.ClosedSquished) {
     const stroke = '#242F2B';
     const left = side === 'left';

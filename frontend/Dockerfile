@@ -1,10 +1,10 @@
 # Stage 1: Generate token + Build the Vite frontend
-FROM node:22-slim AS build
+FROM oven/bun:1 AS build
 
 WORKDIR /app
 
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
 
 COPY frontend/ .
 COPY scripts/generate-token.mjs ./generate-token.mjs
@@ -15,19 +15,18 @@ ARG LIVEKIT_API_SECRET
 ARG LIVEKIT_URL
 
 # Generate token and set as env vars for Vite build
-RUN export VITE_LIVEKIT_TOKEN=$(LIVEKIT_API_KEY=$LIVEKIT_API_KEY LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET node generate-token.mjs) && \
-    export VITE_LIVEKIT_URL=$LIVEKIT_URL && \
-    npm run build
+RUN VITE_LIVEKIT_TOKEN="$(LIVEKIT_API_KEY=$LIVEKIT_API_KEY LIVEKIT_API_SECRET=$LIVEKIT_API_SECRET bun generate-token.mjs)" \
+    VITE_LIVEKIT_URL="$LIVEKIT_URL" \
+    bun run build
 
 # Stage 2: Production — lightweight static file server
-FROM node:22-slim
+FROM oven/bun:1
 
 WORKDIR /app
 
-RUN npm install -g serve
-
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/serve.ts ./serve.ts
 
 EXPOSE 3001
 
-CMD ["serve", "-s", "dist", "-l", "3001"]
+CMD ["bun", "serve.ts"]

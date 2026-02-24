@@ -6,10 +6,10 @@
  * with a 30-day TTL.
  *
  * Usage (from project root):
- *   node scripts/generate-token.mjs
+ *   bun scripts/generate-token.mjs
  *
  * Usage (from frontend/):
- *   node ../scripts/generate-token.mjs
+ *   bun ../scripts/generate-token.mjs
  */
 
 import { createRequire } from 'module';
