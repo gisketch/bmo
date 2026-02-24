@@ -7,6 +7,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from mem0 import Memory
+from qdrant_client import QdrantClient
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("memory-api")
@@ -47,7 +48,7 @@ app = FastAPI(title="BMO Memory API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -65,6 +66,7 @@ def _require_client() -> Memory:
 
 class UpdateBody(BaseModel):
     memory: str
+    category: str | None = None
 
 
 class AddBody(BaseModel):
@@ -136,4 +138,19 @@ def update_memory(memory_id: str, body: UpdateBody, pin: str | None = Query(defa
         raise HTTPException(status_code=400, detail="missing or empty memory field")
 
     client.update(memory_id, text)
-    return {"ok": True, "id": memory_id, "memory": text}
+    if body.category is not None:
+        qdrant = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        qdrant.set_payload(
+            collection_name="mem0",
+            payload={"metadata": {"category": body.category}},
+            points=[memory_id],
+        )
+    return {"ok": True, "id": memory_id, "memory": text, "category": body.category}
+
+
+@app.delete("/api/memories/{memory_id}")
+def delete_memory(memory_id: str, pin: str | None = Query(default=None)):
+    _check_pin(pin)
+    client = _require_client()
+    client.delete(memory_id)
+    return {"ok": True, "id": memory_id}

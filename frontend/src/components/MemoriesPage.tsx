@@ -129,14 +129,17 @@ interface MemoryModalProps {
   categories: string[];
   onClose: () => void;
   onSave: (data: { memory: string; category: string }) => Promise<boolean>;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
-function MemoryModal({ mode, initial, categories, onClose, onSave }: MemoryModalProps) {
+function MemoryModal({ mode, initial, categories, onClose, onSave, onDelete }: MemoryModalProps) {
   const [text, setText] = useState(initial?.memory ?? '');
   const [category, setCategory] = useState(initial?.category ?? 'uncategorized');
   const [customCategory, setCustomCategory] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -243,23 +246,63 @@ function MemoryModal({ mode, initial, categories, onClose, onSave }: MemoryModal
         </div>
       </div>
 
-      <footer className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#3FD4B6]/10">
-        <button
-          onClick={onClose}
-          disabled={saving}
-          className="px-4 py-2 text-xs bg-transparent border border-[#e0e0e0]/20 rounded-lg text-[#e0e0e0]/60 hover:text-[#e0e0e0] transition-colors cursor-pointer disabled:opacity-50"
-          style={FONT_MONO}
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saving || !text.trim()}
-          className="px-6 py-2 text-xs bg-[#3FD4B6]/20 border border-[#3FD4B6]/40 rounded-lg text-[#3FD4B6] hover:bg-[#3FD4B6]/30 transition-colors cursor-pointer disabled:opacity-50"
-          style={FONT_MONO}
-        >
-          {saving ? 'Saving...' : mode === 'add' ? 'Add Memory' : 'Save Changes'}
-        </button>
+      <footer className="flex items-center justify-between px-6 py-4 border-t border-[#3FD4B6]/10">
+        <div>
+          {mode === 'edit' && initial && onDelete && (
+            confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-red-400" style={FONT_MONO}>Delete?</span>
+                <button
+                  onClick={async () => {
+                    setDeleting(true);
+                    const ok = await onDelete(initial.id);
+                    setDeleting(false);
+                    if (ok) onClose();
+                  }}
+                  disabled={deleting}
+                  className="px-3 py-1 text-xs bg-red-500/20 border border-red-500/40 rounded text-red-400 hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+                  style={FONT_MONO}
+                >
+                  {deleting ? '...' : 'Yes'}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="px-3 py-1 text-xs bg-transparent border border-[#e0e0e0]/20 rounded text-[#e0e0e0]/60 hover:text-[#e0e0e0] transition-colors cursor-pointer"
+                  style={FONT_MONO}
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                className="px-3 py-1 text-xs bg-red-500/10 border border-red-500/30 rounded text-red-400/70 hover:bg-red-500/20 hover:text-red-400 transition-colors cursor-pointer"
+                style={FONT_MONO}
+              >
+                Delete
+              </button>
+            )
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 text-xs bg-transparent border border-[#e0e0e0]/20 rounded-lg text-[#e0e0e0]/60 hover:text-[#e0e0e0] transition-colors cursor-pointer disabled:opacity-50"
+            style={FONT_MONO}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !text.trim()}
+            className="px-6 py-2 text-xs bg-[#3FD4B6]/20 border border-[#3FD4B6]/40 rounded-lg text-[#3FD4B6] hover:bg-[#3FD4B6]/30 transition-colors cursor-pointer disabled:opacity-50"
+            style={FONT_MONO}
+          >
+            {saving ? 'Saving...' : mode === 'add' ? 'Add Memory' : 'Save Changes'}
+          </button>
+        </div>
       </footer>
     </div>
   );
@@ -355,11 +398,13 @@ export default function MemoriesPage() {
         const resp = await fetch(`/api/memories/${modal.item.id}?pin=${pin}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ memory: data.memory }),
+          body: JSON.stringify({ memory: data.memory, category: data.category }),
         });
         if (!resp.ok) return false;
         setMemories((prev) =>
-          prev.map((m) => (m.id === modal.item!.id ? { ...m, memory: data.memory } : m)),
+          prev.map((m) =>
+            m.id === modal.item!.id ? { ...m, memory: data.memory, category: data.category } : m,
+          ),
         );
         return true;
       } catch {
@@ -367,6 +412,20 @@ export default function MemoriesPage() {
       }
     },
     [pin, modal],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        const resp = await fetch(`/api/memories/${id}?pin=${pin}`, { method: 'DELETE' });
+        if (!resp.ok) return false;
+        setMemories((prev) => prev.filter((m) => m.id !== id));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [pin],
   );
 
   const handleAdd = useCallback(
@@ -509,6 +568,7 @@ export default function MemoriesPage() {
           categories={existingCategories}
           onClose={() => setModal(null)}
           onSave={modal.mode === 'add' ? handleAdd : handleEdit}
+          onDelete={modal.mode === 'edit' ? handleDelete : undefined}
         />
       )}
     </div>

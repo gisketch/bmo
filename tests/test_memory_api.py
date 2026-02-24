@@ -139,6 +139,32 @@ class MemoryApiTests(unittest.TestCase):
         )
         self.assertEqual(resp.status_code, 401)
 
+    @patch.object(memory_api_main, "mem0_client")
+    def test_update_memory_with_category(self, mock_client: MagicMock):
+        mock_client.update.return_value = None
+        with patch("main.QdrantClient") as MockQdrant:
+            mock_qdrant_instance = MagicMock()
+            MockQdrant.return_value = mock_qdrant_instance
+            resp = self.client.put(
+                "/api/memories/abc123?pin=4869",
+                json={"memory": "Updated", "category": "goals"},
+            )
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.json()["category"], "goals")
+            mock_qdrant_instance.set_payload.assert_called_once()
+
+    @patch.object(memory_api_main, "mem0_client")
+    def test_delete_memory_valid(self, mock_client: MagicMock):
+        mock_client.delete.return_value = None
+        resp = self.client.delete("/api/memories/abc123?pin=4869")
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.json()["ok"])
+        mock_client.delete.assert_called_once_with("abc123")
+
+    def test_delete_memory_wrong_pin(self):
+        resp = self.client.delete("/api/memories/abc123?pin=0000")
+        self.assertEqual(resp.status_code, 401)
+
     def test_cors_headers(self):
         resp = self.client.get("/api/memories?pin=0000", headers={"Origin": "http://localhost:3001"})
         self.assertIn("access-control-allow-origin", resp.headers)
