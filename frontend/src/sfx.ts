@@ -4,10 +4,21 @@ type SfxKey =
   | 'tap_glass'
   | 'cassette_in'
   | 'cassette_out'
+  | 'bmo_beepboop'
+  | 'bmo_chuckle'
+  | 'bmo_hmm'
   | 'tv_on'
   | 'tv_off';
 
 const SFX_FILES = [
+  'bmo_beep_1.wav',
+  'bmo_boop_1.wav',
+  'bmo_boop_2.wav',
+  'bmo_chuckle_1.wav',
+  'bmo_chuckle_2.wav',
+  'hmm_1.wav',
+  'hmm_2.wav',
+  'hmm_3.wav',
   'button_1.wav',
   'cassette_in.wav',
   'cassette_out.wav',
@@ -25,6 +36,21 @@ const urls = SFX_FILES.map((name) => `/sfx/${name}`);
 
 const pools = new Map<SfxKey, HTMLAudioElement[]>();
 let initialized = false;
+
+const lastPlayedAtMs = new Map<SfxKey, number>();
+
+function playFromPoolDebounced(
+  key: SfxKey,
+  strategy: 'round-robin' | 'random',
+  cooldownMs: number,
+) {
+  const now = Date.now();
+  const last = lastPlayedAtMs.get(key) ?? 0;
+  if (now - last < cooldownMs) return false;
+  lastPlayedAtMs.set(key, now);
+  playFromPool(key, strategy);
+  return true;
+}
 
 function createPool(url: string, size: number) {
   const elements: HTMLAudioElement[] = [];
@@ -47,6 +73,20 @@ export function initSfx() {
   });
 
   pools.set('button', createPool('/sfx/button_1.wav', 4));
+  pools.set('bmo_beepboop', [
+    ...createPool('/sfx/bmo_beep_1.wav', 2),
+    ...createPool('/sfx/bmo_boop_1.wav', 2),
+    ...createPool('/sfx/bmo_boop_2.wav', 2),
+  ]);
+  pools.set('bmo_chuckle', [
+    ...createPool('/sfx/bmo_chuckle_1.wav', 2),
+    ...createPool('/sfx/bmo_chuckle_2.wav', 2),
+  ]);
+  pools.set('bmo_hmm', [
+    ...createPool('/sfx/hmm_1.wav', 2),
+    ...createPool('/sfx/hmm_2.wav', 2),
+    ...createPool('/sfx/hmm_3.wav', 2),
+  ]);
   pools.set('cassette_in', createPool('/sfx/cassette_in.wav', 2));
   pools.set('cassette_out', createPool('/sfx/cassette_out.wav', 2));
   pools.set('tap_body', [
@@ -83,15 +123,28 @@ function playFromPool(key: SfxKey, strategy: 'round-robin' | 'random') {
 }
 
 export function playButtonSfx() {
-  playFromPool('button', 'round-robin');
+  playFromPoolDebounced('button', 'round-robin', 80);
 }
 
 export function playTapBodySfx() {
-  playFromPool('tap_body', 'random');
+  playFromPoolDebounced('tap_body', 'random', 80);
 }
 
 export function playTapGlassSfx() {
-  playFromPool('tap_glass', 'random');
+  playFromPoolDebounced('tap_glass', 'random', 120);
+}
+
+export function playBmoBeepBoopSfx(): boolean {
+  if (Math.random() >= 0.3) return false;
+  return playFromPoolDebounced('bmo_beepboop', 'random', 80);
+}
+
+export function playBmoChuckleSfx() {
+  playFromPoolDebounced('bmo_chuckle', 'random', 200);
+}
+
+export function playBmoHmmSfx() {
+  playFromPoolDebounced('bmo_hmm', 'random', 600);
 }
 
 export function playCassetteInSfx() {

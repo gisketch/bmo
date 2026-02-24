@@ -9,6 +9,8 @@ interface SecondRowProps {
   onStartPress?: () => void;
   onTrianglePress?: () => void;
   onReconnectPress?: () => void;
+  onDPadLeftPress?: () => void;
+  onDPadRightPress?: () => void;
 }
 
 /**
@@ -21,12 +23,14 @@ export default function SecondRow({
   onStartPress,
   onTrianglePress,
   onReconnectPress,
+  onDPadLeftPress,
+  onDPadRightPress,
 }: SecondRowProps) {
   return (
     <div className="flex flex-row w-full justify-between px-2">
       {/* First Column — DPad + Start/Select, flushed left */}
       <div className="flex flex-col items-start justify-center gap-16">
-        <DPad />
+        <DPad onLeftPress={onDPadLeftPress} onRightPress={onDPadRightPress} />
         <StartSelect onStartPress={onStartPress} />
       </div>
 

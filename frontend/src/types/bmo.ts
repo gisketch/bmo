@@ -19,6 +19,9 @@ export enum MouthState {
   OpenSad = 5,
   /** Animated: cycles OpenSad → ClosedSad → MouthOh */
   TalkSad = 6,
+
+  /** Straight line mouth, slightly tilted down to the right */
+  FlatTilt = 7,
 }
 
 /**
@@ -29,6 +32,8 @@ export enum MouthState {
  */
 export enum EyeState {
   Normal = 'normal',
+  Closed = 'closed',
+  ClosedSquished = 'closed_squished',
 }
 
 /**

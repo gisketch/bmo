@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { playButtonSfx } from '../sfx';
+import { playBmoBeepBoopSfx, playButtonSfx } from '../sfx';
 
 interface UseButtonPressOptions {
   /** Keyboard keys that trigger press (default: none) */
@@ -20,11 +20,27 @@ export function useButtonPress(options: UseButtonPressOptions = {}) {
   const [pressed, setPressed] = useState(false);
   const lastTouchAtMs = useState(() => ({ value: 0 }))[0];
 
+  const emitBmoButtonPress = useCallback((beepBoopPlayed: boolean) => {
+    try {
+      window.dispatchEvent(new CustomEvent('bmo:button-press', { detail: { beepBoopPlayed } }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (keys.includes(e.key)) setPressed(true);
+      if (!keys.includes(e.key)) return;
+      if ('repeat' in e && (e as KeyboardEvent).repeat) return;
+      setPressed(true);
+      let beepBoopPlayed = false;
+      if (playSfx) {
+        playButtonSfx();
+        beepBoopPlayed = playBmoBeepBoopSfx();
+      }
+      emitBmoButtonPress(beepBoopPlayed);
     },
-    [keys],
+    [emitBmoButtonPress, keys, playSfx],
   );
 
   const handleKeyUp = useCallback(
@@ -49,7 +65,12 @@ export function useButtonPress(options: UseButtonPressOptions = {}) {
       if (Date.now() - lastTouchAtMs.value < 750) return;
       e?.stopPropagation?.();
       setPressed(true);
-      if (playSfx) playButtonSfx();
+      let beepBoopPlayed = false;
+      if (playSfx) {
+        playButtonSfx();
+        beepBoopPlayed = playBmoBeepBoopSfx();
+      }
+      emitBmoButtonPress(beepBoopPlayed);
     },
     onMouseUp: (e?: { stopPropagation?: () => void }) => {
       if (Date.now() - lastTouchAtMs.value < 750) return;
@@ -61,7 +82,12 @@ export function useButtonPress(options: UseButtonPressOptions = {}) {
       lastTouchAtMs.value = Date.now();
       e?.stopPropagation?.();
       setPressed(true);
-      if (playSfx) playButtonSfx();
+      let beepBoopPlayed = false;
+      if (playSfx) {
+        playButtonSfx();
+        beepBoopPlayed = playBmoBeepBoopSfx();
+      }
+      emitBmoButtonPress(beepBoopPlayed);
     },
     onTouchEnd: (e?: { stopPropagation?: () => void }) => {
       lastTouchAtMs.value = Date.now();

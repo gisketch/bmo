@@ -69,6 +69,12 @@ export default function Mouth({ mouthState }: MouthProps) {
     </svg>
   );
 
+  const flatTilt = (
+    <svg width="100" height="80" viewBox="0 0 100 100" className="overflow-visible">
+      <path d="M 18 52 L 82 60" stroke="#242F2B" strokeWidth="4" strokeLinecap="round" fill="transparent" />
+    </svg>
+  );
+
   const mouthOh = (
     <svg width="100" height="80" viewBox="0 0 100 100" className="overflow-visible">
       <clipPath id="mouth-oh-clip">
@@ -92,6 +98,7 @@ export default function Mouth({ mouthState }: MouthProps) {
       {mouthState === MouthState.OpenSmile && openSmile}
       {mouthState === MouthState.MouthOh && mouthOh}
       {mouthState === MouthState.OpenSad && openSad}
+      {mouthState === MouthState.FlatTilt && flatTilt}
 
       {mouthState === MouthState.TalkHappy && talkHappyFrames[talkFrame]}
       {mouthState === MouthState.TalkSad && talkSadFrames[talkFrame]}
