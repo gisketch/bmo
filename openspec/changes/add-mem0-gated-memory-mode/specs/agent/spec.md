@@ -5,7 +5,7 @@ The agent SHALL use Mem0 to store and retrieve durable user context across sessi
 
 The agent SHALL support `MEM0_SETTING` modes:
 - `NORMAL`: current behavior (store each completed user turn; retrieve/inject context each turn).
-- `GATED`: curated behavior (store only durable memories; retrieve/inject only when needed).
+- `GATED`: curated behavior (store only durable memories; retrieval/injection behavior unchanged).
 
 #### Scenario: User message is stored (NORMAL)
 - **WHEN** the user completes a turn and `MEM0_SETTING=NORMAL`
@@ -22,9 +22,4 @@ The agent SHALL support `MEM0_SETTING` modes:
 
 #### Scenario: Relevant context is injected (GATED)
 - **WHEN** the user completes a turn and `MEM0_SETTING=GATED`
-- **THEN** the agent runs retrieval/injection only when the user’s message indicates memory is useful (e.g., identity/relationship/preference questions, “remember…”, “do you remember…”, “what do you know about me?”)
-- **AND** the agent filters retrieved memories to durable categories (relationships/preferences/goals/personal_facts) before injecting them
-
-#### Scenario: Session-start profile injection (GATED)
-- **WHEN** a session starts and `MEM0_SETTING=GATED`
-- **THEN** the agent performs a best-effort retrieval of durable memories and injects a compact “profile” context into the chat context once for the session
+- **THEN** the agent searches the Mem0 vector store for relevant memories and injects them into the chat context before the LLM generates its response

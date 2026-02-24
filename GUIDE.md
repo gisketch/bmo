@@ -37,7 +37,8 @@ Edit `.env.local` with your keys.
 This project uses Mem0 for persistent memory. You can control how aggressively memories are stored/retrieved with `MEM0_SETTING` in `.env.local`.
 
 ```
-# Default (recommended): stores only durable, categorized memories; retrieves only when needed
+# Default (recommended): stores only durable, categorized memories using a Gemini LLM gatekeeper (uses `GOOGLE_API_KEY`);
+# retrieval/injection behavior remains the same (Mem0 is searched on each turn).
 MEM0_SETTING=GATED
 
 # Legacy behavior: stores every user turn and runs retrieval on every turn

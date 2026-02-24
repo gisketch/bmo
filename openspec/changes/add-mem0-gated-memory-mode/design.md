@@ -20,9 +20,8 @@ Constraints:
 **Goals:**
 - Provide `MEM0_SETTING` modes: `NORMAL` (current behavior) and `GATED` (new default).
 - In `GATED` mode, store only curated durable memories (facts/preferences/goals/relationships) with explicit categories.
-- In `GATED` mode, only retrieve/inject memories when the user’s message indicates memory is useful (trigger-based retrieval), rather than on every turn.
+- Keep retrieval/injection behavior unchanged (Mem0 search + injection on every user turn).
 - Keep memory storage asynchronous to avoid blocking the voice loop.
-- Keep retrieval lightweight (filters/top_k/threshold) and avoid retrieval when not needed.
 
 **Non-Goals:**
 - Building a UI to inspect/edit memories.
@@ -49,9 +48,10 @@ We will introduce a gatekeeper function that takes the user’s message and retu
 - memories: list of canonical memory strings
 - category: one of relationships/preferences/goals/personal_facts
 
-Implementation approach (phase 1): heuristics-first gatekeeper.
-- Regex/keyword patterns extract durable facts (e.g., “my brother is X” → “Has a brother named X”).
-- If no durable pattern matches, we skip storing entirely.
+Implementation approach: LLM-first gatekeeper.
+- Use Gemini (via `GOOGLE_API_KEY`) to decide STORE/SKIP and output canonical, categorized memories.
+- Provide the current user message and a small set of relevant existing Mem0 memories so the LLM can choose add vs update.
+- If the key is missing or the LLM fails, fall back to heuristic extraction.
 
 Rationale:
 - Cost/latency-first: avoids adding an extra LLM call.
@@ -69,35 +69,18 @@ Rationale:
 - Keeps the memory store queryable and auditable.
 
 ### D4: Trigger-based retrieval/injection in `GATED` mode
-We will avoid `mem0.search()` on every turn in `GATED` mode.
-Instead, we run retrieval/injection only when a message matches retrieval triggers such as:
-- Explicit memory prompts: “remember…”, “do you remember…”, “what do you know about me?”
-- Preference/relationship questions: “what do I like…”, “who is my brother…”, “my preferences…”, etc.
-
-When retrieval runs, we filter to durable categories and keep results small:
-- `filters={"AND": [{"metadata": {"category": {"in": [..durable..]}}}]}` where supported
-- `top_k` small (e.g., 5–10)
-- optional similarity threshold (if supported by the OSS client)
+We will keep retrieval/injection behavior unchanged across modes.
 
 Rationale:
-- Saves latency/cost on turns where memory is irrelevant (small talk, tool requests like “random cassette”).
+- This preserves existing behavior and avoids changing how the agent feels, while still ensuring the memory store stays clean.
 
-Alternative considered:
-- Retrieve every N turns. Rejected as it still injects noise/cost on irrelevant turns.
-
-### D5: Session-start “profile” injection implemented as first-turn injection
-The LiveKit Agent callback we reliably control today is `on_user_turn_completed(turn_ctx, new_message)`.
-We will inject a compact profile only once per session by:
-- Tracking a boolean `self._mem0_profile_injected`.
-- On the first completed user turn in `GATED` mode, run a single Mem0 search with a generic “profile” query (e.g., “user preferences relationships goals personal facts”), filtered to durable categories, and inject the results.
-
-Rationale:
-- Avoids relying on framework-specific hooks that may not exist in this codebase.
-- Uses the existing `turn_ctx` injection pattern already working today.
+### D5: Keep profile injection out of scope
+We will not inject a special profile context at session start. Retrieval remains per-turn as before.
 
 ## Risks / Trade-offs
 
-- Heuristics miss some durable facts → Mitigation: add explicit “remember this” trigger and/or optional LLM gatekeeper later.
+- LLM gatekeeper cost → Mitigation: run it asynchronously and keep the output small (1–3 items).
+- LLM gatekeeper failures (rate limits, missing key) → Mitigation: fall back to heuristic extraction.
 - Mis-categorization (wrong category) → Mitigation: keep category set small, use conservative patterns, and allow manual wipe by Mem0 delete filters if needed.
 - Retrieval triggers too strict (memory not used when it should) → Mitigation: expand trigger list gradually; add metrics/logging for skipped retrieval decisions.
 - Injecting as `system` message can over-constrain the model → Mitigation: inject with clear prefix (“Past memories (context only): …”) and consider switching injection role to `assistant` if needed.
@@ -105,9 +88,8 @@ Rationale:
 ## Migration Plan
 
 1. Add `MEM0_SETTING` parsing with default `GATED`.
-2. Implement gatekeeper + category metadata storage.
-3. Implement trigger-based retrieval + one-time profile injection.
-4. Deploy with `MEM0_SETTING=GATED` and monitor logs for skipped/stored decisions.
+2. Implement LLM gatekeeper + category metadata storage.
+3. Deploy with `MEM0_SETTING=GATED` and monitor logs for skipped/stored decisions.
 
 Rollback:
 - Set `MEM0_SETTING=NORMAL` to restore pre-change behavior.

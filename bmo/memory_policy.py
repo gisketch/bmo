@@ -38,7 +38,15 @@ class MemoryDecision:
 
 _RELATIONSHIP_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(
-        r"\bmy\s+(brother|sister|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend)\s+(?:is|named|called)\s+([A-Za-z][A-Za-z0-9_\-']{1,40})\b",
+        r"\bmy\s+(brother|sister|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend)\s+(?:is\s+named|is\s+called|is|named|called)\s+([A-Za-z][A-Za-z0-9_\-']{1,40})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bI\s+have\s+(?:a|an)\s+(brother|sister|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend)\s+(?:named|called)\s+([A-Za-z][A-Za-z0-9_\-']{1,40})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bmy\s+(brother|sister|mom|mother|dad|father|partner|wife|husband|girlfriend|boyfriend)(?:'s)?\s+name\s+is\s+([A-Za-z][A-Za-z0-9_\-']{1,40})\b",
         re.IGNORECASE,
     ),
 )
@@ -48,7 +56,29 @@ _PREFERENCE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bI\s+(hate|dislike)\s+(.+)$", re.IGNORECASE),
     re.compile(r"\bI\s+prefer\s+(.+)$", re.IGNORECASE),
     re.compile(r"\bmy\s+favorite\s+([^\n]{1,40})\s+is\s+(.+)$", re.IGNORECASE),
+    re.compile(r"\bfavorite\s+([^\n]{1,40})\s+is\s+(.+)$", re.IGNORECASE),
 )
+
+_PREF_LIKE, _PREF_HATE, _PREF_PREFER, _PREF_MY_FAVORITE, _PREF_FAVORITE = _PREFERENCE_PATTERNS
+
+
+def looks_like_canonical_memory(text: str) -> bool:
+    value = (text or "").strip()
+    if not value:
+        return False
+    prefixes = (
+        "Has a ",
+        "Likes ",
+        "Dislikes ",
+        "Prefers ",
+        "Goal:",
+        "Name is ",
+        "Lives in ",
+        "From ",
+        "Works as ",
+        "Favorite ",
+    )
+    return value.startswith(prefixes)
 
 _GOAL_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bmy\s+goal\s+is\s+(.+)$", re.IGNORECASE),
@@ -143,7 +173,7 @@ def _extract_preferences(text: str) -> list[MemoryItem]:
         if not match:
             continue
 
-        if match.re.pattern.startswith("\\bmy\\s+favorite"):
+        if pattern is _PREF_MY_FAVORITE or pattern is _PREF_FAVORITE:
             thing = _compact(match.group(1))
             value = _compact(match.group(2))
             if thing and value:

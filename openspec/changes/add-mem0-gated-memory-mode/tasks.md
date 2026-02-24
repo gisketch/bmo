@@ -9,6 +9,9 @@
 - [x] 2.2 Update `bmo/assistant.py` to use the gatekeeper in `GATED` mode and store only canonical memories (skip storing if none)
 - [x] 2.3 Store category metadata on saved memories to support filtered retrieval
 - [x] 2.4 Preserve `NORMAL` mode behavior (store raw user turn as before)
+- [x] 2.5 Expand gatekeeper patterns for relationships/favorites (e.g., "I have a brother named X")
+- [x] 2.6 Add `bmo/llm_gatekeeper.py` Gemini-based gatekeeper using `GOOGLE_API_KEY` with structured JSON output
+- [x] 2.7 Wire `GATED` mode to use LLM gatekeeper (with heuristic fallback)
 
 ## 3. Trigger-Based Retrieval + Profile Injection
 
@@ -16,6 +19,8 @@
 - [x] 3.2 Add one-time per-session “profile” injection in `GATED` mode (best-effort) using durable-category filtered search
 - [x] 3.3 Filter retrieved results by durable categories in `GATED` mode before injecting into chat context
 - [x] 3.4 Preserve `NORMAL` mode behavior (search/inject every turn as before)
+- [x] 3.5 Backward-compatible durable injection for uncategorized legacy memories
+- [x] 3.6 Revert retrieval/injection to original behavior (search and inject every turn) while keeping gated storage
 
 ## 4. Documentation
 

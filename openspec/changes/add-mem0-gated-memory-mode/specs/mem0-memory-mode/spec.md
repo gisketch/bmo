@@ -4,8 +4,8 @@
 The system SHALL support a configurable Mem0 behavior mode via `MEM0_SETTING`.
 
 `MEM0_SETTING` SHALL support:
-- `NORMAL`: store every user turn in Mem0 and run retrieval/injection on every user turn.
-- `GATED`: only store curated durable memories and only run retrieval/injection on turns that need memory.
+- `NORMAL`: store every user turn in Mem0.
+- `GATED`: only store curated durable memories.
 
 If `MEM0_SETTING` is unset or invalid, the system SHALL default to `GATED`.
 
@@ -15,11 +15,11 @@ If `MEM0_SETTING` is unset or invalid, the system SHALL default to `GATED`.
 
 #### Scenario: NORMAL mode behavior
 - **WHEN** `MEM0_SETTING=NORMAL`
-- **THEN** the system stores each completed user turn in Mem0 and attempts retrieval/injection for each completed user turn
+- **THEN** the system stores each completed user turn in Mem0
 
 #### Scenario: GATED mode behavior
 - **WHEN** `MEM0_SETTING=GATED`
-- **THEN** the system stores only curated durable memories and attempts retrieval/injection only on turns that meet retrieval triggers
+- **THEN** the system stores only curated durable memories
 
 ### Requirement: Durable memory categorization
 When storing curated durable memories, the system SHALL tag each memory with a category to support filtered retrieval.
@@ -35,8 +35,8 @@ Supported categories SHALL include:
 - **THEN** it includes category metadata that matches one of the supported categories
 
 ### Requirement: Retrieval whitelist by category
-In `GATED` mode, retrieval/injection SHALL whitelist durable categories so only durable memories are injected into the model context.
+In `GATED` mode, stored memories SHALL be categorized to support future filtered retrieval.
 
 #### Scenario: Retrieval injects only durable categories
-- **WHEN** retrieval/injection runs in `GATED` mode
-- **THEN** injected memories are filtered to the supported durable categories
+- **WHEN** the system stores curated durable memories
+- **THEN** those stored memories can be retrieved later using category metadata filters
