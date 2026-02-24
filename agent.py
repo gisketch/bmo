@@ -111,9 +111,16 @@ if __name__ == "__main__":
     threading.Thread(target=agent_watchdog, daemon=True).start()
 
     def _run_memory_api():
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(start_memory_api())
-        loop.run_forever()
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(start_memory_api())
+            logger.info("Memory API thread running event loop")
+            loop.run_forever()
+        except Exception as e:
+            logger.error(f"Memory API thread crashed: {e}")
 
-    threading.Thread(target=_run_memory_api, daemon=True).start()
+    api_thread = threading.Thread(target=_run_memory_api, daemon=True)
+    api_thread.start()
+    logger.info("Memory API thread started")
     agents.cli.run_app(server)

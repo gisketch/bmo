@@ -25,18 +25,23 @@ function resolveDistPath(urlPathname: string): string | null {
 async function proxyToApi(request: Request, url: URL): Promise<Response> {
   const upstream = `${API_UPSTREAM}${url.pathname}${url.search}`;
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     const resp = await fetch(upstream, {
       method: request.method,
       headers: request.headers,
       body: request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : undefined,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     return new Response(resp.body, {
       status: resp.status,
       statusText: resp.statusText,
       headers: resp.headers,
     });
-  } catch {
-    return new Response(JSON.stringify({ error: 'api upstream unreachable' }), {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'unknown error';
+    return new Response(JSON.stringify({ error: 'api upstream unreachable', detail: message }), {
       status: 502,
       headers: { 'Content-Type': 'application/json' },
     });
