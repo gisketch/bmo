@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: SPA routing
 The frontend SHALL detect the URL path on mount. When the path is `/memories`, the app SHALL render the MemoriesPage component instead of the standard BMO layout.

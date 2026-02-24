@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Agent process starts memory API
 The agent process SHALL start the aiohttp memory API server on port 8484 as a background task alongside the LiveKit agent.
