@@ -12,7 +12,6 @@ from bmo.config import AGENT_NAME, logger
 from bmo.status import increment_llm_counter, build_status_response
 from bmo.assistant import Assistant
 from bmo.room import ensure_room_and_dispatch, agent_watchdog
-from bmo.memory_api import start_memory_api
 
 server = AgentServer()
 
@@ -109,18 +108,4 @@ async def entrypoint(ctx: agents.JobContext):
 
 if __name__ == "__main__":
     threading.Thread(target=agent_watchdog, daemon=True).start()
-
-    def _run_memory_api():
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(start_memory_api())
-            logger.info("Memory API thread running event loop")
-            loop.run_forever()
-        except Exception as e:
-            logger.error(f"Memory API thread crashed: {e}")
-
-    api_thread = threading.Thread(target=_run_memory_api, daemon=True)
-    api_thread.start()
-    logger.info("Memory API thread started")
     agents.cli.run_app(server)

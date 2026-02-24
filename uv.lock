@@ -1534,7 +1534,6 @@ name = "livekit-voice-agent"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "aiohttp" },
     { name = "httpx" },
     { name = "livekit-agents", extra = ["deepgram", "google", "groq", "silero", "turn-detector"] },
     { name = "livekit-plugins-fishaudio" },
@@ -1545,7 +1544,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "livekit-agents", extras = ["deepgram", "google", "groq", "silero", "turn-detector"], specifier = "~=1.4" },
     { name = "livekit-plugins-fishaudio", specifier = ">=1.4.2" },

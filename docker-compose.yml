@@ -17,6 +17,18 @@ services:
     network_mode: host
     restart: unless-stopped
 
+  memory-api:
+    build:
+      context: ./services/memory-api
+      dockerfile: Dockerfile
+    env_file: .env.local
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    depends_on:
+      - qdrant
+    restart: unless-stopped
+
   web:
     build:
       context: .
@@ -27,6 +39,9 @@ services:
         - LIVEKIT_URL=${LIVEKIT_PUBLIC_URL}
     ports:
       - "3001:3001"
+    environment:
+      - API_UPSTREAM=http://memory-api:8484
     restart: unless-stopped
     depends_on:
       - agent
+      - memory-api

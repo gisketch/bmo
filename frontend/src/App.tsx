@@ -15,6 +15,7 @@ import CassetteModal from './components/bmo/CassetteModal';
 import { useAgentVisualState } from './hooks/useAgentVisualState';
 import { useTrackVolume } from './hooks/useTrackVolume';
 import { useStatusData } from './hooks/useStatusData';
+import { useSecretCombo } from './hooks/useSecretCombo';
 import { EyeState, LedState, MouthState } from './types/bmo';
 import type { CassetteMessage } from './types/bmo';
 import { initSfx, playCassetteInSfx, playCassetteOutSfx } from './sfx';
@@ -170,6 +171,28 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
     if (!faceOverrideEnabled) return;
     cycleOverride(1);
   }, [cycleOverride, faceOverrideEnabled]);
+
+  const { feedInput: feedCombo } = useSecretCombo(() => {
+    window.location.href = '/memories';
+  });
+
+  const handleDPadUp = useCallback(() => {
+    feedCombo('up');
+  }, [feedCombo]);
+
+  const handleDPadDown = useCallback(() => {
+    feedCombo('down');
+  }, [feedCombo]);
+
+  const wrappedDPadLeft = useCallback(() => {
+    feedCombo('left');
+    handleDPadLeft();
+  }, [feedCombo, handleDPadLeft]);
+
+  const wrappedDPadRight = useCallback(() => {
+    feedCombo('right');
+    handleDPadRight();
+  }, [feedCombo, handleDPadRight]);
 
   const [cassetteMessage, setCassetteMessage] = useState<CassetteMessage | null>(null);
   const [cassetteModalOpen, setCassetteModalOpen] = useState(false);
@@ -434,12 +457,14 @@ function BmoLayout({ onReconnect, onForceDisconnect }: { onReconnect: () => void
       <div className="shrink-0 w-full pb-24">
         <SecondRow
           isMuted={!isMicrophoneEnabled}
-          onToggleMute={toggleMute}
+          onToggleMute={() => { feedCombo('big-red'); toggleMute(); }}
           onStartPress={togglePage}
           onTrianglePress={toggleFaceOverride}
           onReconnectPress={handleGreenPress}
-          onDPadLeftPress={handleDPadLeft}
-          onDPadRightPress={handleDPadRight}
+          onDPadUpPress={handleDPadUp}
+          onDPadDownPress={handleDPadDown}
+          onDPadLeftPress={wrappedDPadLeft}
+          onDPadRightPress={wrappedDPadRight}
         />
       </div>
 

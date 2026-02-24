@@ -1,8 +1,5 @@
-# memory-management-ui Specification
+## MODIFIED Requirements
 
-## Purpose
-Provide a PIN-protected web UI at `/memories` for viewing and editing BMO's mem0/Qdrant memories, backed by a standalone FastAPI service.
-## Requirements
 ### Requirement: Memory listing API
 The system SHALL expose `GET /api/memories` that returns all mem0 memories for user "glenn" as a JSON array, each entry containing `id`, `memory` (text), and `category`. The endpoint SHALL be served by a standalone FastAPI service (not embedded in the agent).
 
@@ -25,28 +22,6 @@ The system SHALL expose `PUT /api/memories/:id` accepting JSON body `{ "memory":
 - **WHEN** client sends `PUT /api/memories/abc123?pin=4869` with empty or missing `memory` field
 - **THEN** the FastAPI service responds with 400
 
-### Requirement: PIN authentication
-All `/api/memories*` endpoints SHALL require query parameter `pin=4869`. Requests without a valid PIN SHALL receive a 401 response.
-
-#### Scenario: Wrong PIN
-- **WHEN** client sends any memory API request with `pin=0000`
-- **THEN** server responds with 401
-
-### Requirement: Frontend memories page
-The frontend SHALL render a dedicated page at URL path `/memories` that displays all memories grouped by category with inline editing.
-
-#### Scenario: User navigates to /memories
-- **WHEN** user opens `/memories` in the browser
-- **THEN** the app renders a PIN prompt instead of the BMO face
-
-#### Scenario: Correct PIN entered
-- **WHEN** user enters PIN 4869 on the memories page
-- **THEN** the page fetches and displays all memories grouped under category headings (Relationships, Preferences, Goals, Personal Facts, Uncategorized)
-
-#### Scenario: User edits a memory
-- **WHEN** user modifies a memory's text and confirms the edit
-- **THEN** the frontend sends `PUT /api/memories/:id` and reflects the updated text on success
-
 ### Requirement: API proxy
 Both the Vite dev server and the production Bun server SHALL proxy `/api/*` requests to the memory API upstream. In production Docker, the default upstream SHALL be `http://memory-api:8484` (Docker DNS). In development, the default SHALL be `http://localhost:8484`.
 
@@ -57,6 +32,8 @@ Both the Vite dev server and the production Bun server SHALL proxy `/api/*` requ
 #### Scenario: Production proxy
 - **WHEN** frontend fetches `/api/memories?pin=4869` in production Docker
 - **THEN** Bun serve.ts proxies the request to `http://memory-api:8484/api/memories?pin=4869` via the `API_UPSTREAM` environment variable
+
+## ADDED Requirements
 
 ### Requirement: PIN persistence in localStorage
 The frontend SHALL persist the PIN in `localStorage` after a successful unlock. On page load, if a valid PIN exists in storage, the PIN gate SHALL be skipped. A "Lock" button SHALL clear the stored PIN and return to the PIN gate.
@@ -72,4 +49,3 @@ The frontend SHALL persist the PIN in `localStorage` after a successful unlock. 
 #### Scenario: Lock button clears PIN
 - **WHEN** user clicks the "Lock" button on the memories page
 - **THEN** `bmo-pin` is removed from `localStorage` and the PIN gate is displayed
-

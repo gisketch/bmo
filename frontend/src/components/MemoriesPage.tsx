@@ -26,27 +26,47 @@ function groupByCategory(memories: MemoryItem[]): Record<string, MemoryItem[]> {
   return groups;
 }
 
-function PinGate({ onUnlock }: { onUnlock: () => void }) {
+const PIN_STORAGE_KEY = 'bmo-pin';
+
+function PinGate({ onUnlock }: { onUnlock: (pin: string) => void }) {
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(PIN_STORAGE_KEY);
+    if (stored) onUnlock(stored);
+  }, [onUnlock]);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      if (pin === '4869') {
-        onUnlock();
-      } else {
+      if (!pin || checking) return;
+      setChecking(true);
+      try {
+        const resp = await fetch(`/api/memories?pin=${pin}`);
+        if (resp.ok) {
+          localStorage.setItem(PIN_STORAGE_KEY, pin);
+          onUnlock(pin);
+        } else {
+          setError(true);
+          setPin('');
+          inputRef.current?.focus();
+        }
+      } catch {
         setError(true);
         setPin('');
         inputRef.current?.focus();
+      } finally {
+        setChecking(false);
       }
     },
-    [pin, onUnlock],
+    [pin, onUnlock, checking],
   );
 
   return (
@@ -79,10 +99,11 @@ function PinGate({ onUnlock }: { onUnlock: () => void }) {
         )}
         <button
           type="submit"
-          className="mt-2 px-6 py-2 bg-[#3FD4B6]/20 border border-[#3FD4B6]/40 rounded-lg text-[#3FD4B6] text-sm tracking-wider hover:bg-[#3FD4B6]/30 transition-colors cursor-pointer"
+          disabled={checking || !pin}
+          className="mt-2 px-6 py-2 bg-[#3FD4B6]/20 border border-[#3FD4B6]/40 rounded-lg text-[#3FD4B6] text-sm tracking-wider hover:bg-[#3FD4B6]/30 transition-colors cursor-pointer disabled:opacity-50"
           style={{ fontFamily: "'Geist Mono', monospace" }}
         >
-          UNLOCK
+          {checking ? 'CHECKING...' : 'UNLOCK'}
         </button>
       </form>
     </div>
@@ -210,6 +231,12 @@ export default function MemoriesPage() {
     try {
       const resp = await fetch(`/api/memories?pin=${pinCode}`);
       if (!resp.ok) {
+        if (resp.status === 401) {
+          localStorage.removeItem(PIN_STORAGE_KEY);
+          setUnlocked(false);
+          setPin('');
+          return;
+        }
         const body = await resp.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${resp.status}`);
       }
@@ -222,14 +249,21 @@ export default function MemoriesPage() {
     }
   }, []);
 
-  const handleUnlock = useCallback(() => {
-    setPin('4869');
+  const handleUnlock = useCallback((pinCode: string) => {
+    setPin(pinCode);
     setUnlocked(true);
   }, []);
 
+  const handleLock = useCallback(() => {
+    localStorage.removeItem(PIN_STORAGE_KEY);
+    setUnlocked(false);
+    setPin('');
+    setMemories([]);
+  }, []);
+
   useEffect(() => {
-    if (unlocked) fetchMemories('4869');
-  }, [unlocked, fetchMemories]);
+    if (unlocked && pin) fetchMemories(pin);
+  }, [unlocked, pin, fetchMemories]);
 
   const handleSave = useCallback(
     async (id: string, newText: string): Promise<boolean> => {
@@ -264,12 +298,21 @@ export default function MemoriesPage() {
     <div className="min-h-screen bg-[#1a1a2e] text-[#e0e0e0]">
       <div className="max-w-3xl mx-auto px-4 py-8">
         <header className="flex items-center justify-between mb-8">
-          <h1
-            className="text-xl font-bold tracking-widest text-[#3FD4B6]"
-            style={{ fontFamily: "'Pixeloid', monospace" }}
-          >
-            BMO MEMORIES
-          </h1>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => { window.location.href = '/'; }}
+              className="px-3 py-1 text-xs bg-[#3FD4B6]/10 border border-[#3FD4B6]/30 rounded text-[#3FD4B6]/70 hover:bg-[#3FD4B6]/20 hover:text-[#3FD4B6] transition-colors cursor-pointer"
+              style={{ fontFamily: "'Pixeloid', monospace" }}
+            >
+              BMO
+            </button>
+            <h1
+              className="text-xl font-bold tracking-widest text-[#3FD4B6]"
+              style={{ fontFamily: "'Pixeloid', monospace" }}
+            >
+              MEMORIES
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <span
               className="text-xs text-[#3FD4B6]/50"
@@ -284,6 +327,13 @@ export default function MemoriesPage() {
               style={{ fontFamily: "'Geist Mono', monospace" }}
             >
               {loading ? 'Loading...' : 'Refresh'}
+            </button>
+            <button
+              onClick={handleLock}
+              className="px-3 py-1 text-xs bg-red-500/10 border border-red-500/30 rounded text-red-400/70 hover:bg-red-500/20 hover:text-red-400 transition-colors cursor-pointer"
+              style={{ fontFamily: "'Geist Mono', monospace" }}
+            >
+              Lock
             </button>
           </div>
         </header>
